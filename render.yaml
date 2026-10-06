@@ -1,0 +1,13 @@
+# AIS prototype only. Use this file when `ais/` is its own repository (its own Render Blueprint).
+# The Negotiation Desk (negotiation-api, negotiation-web) is deployed separately from its own repository and is not touched here.
+services:
+  - type: web
+    name: ais-prototype
+    runtime: static
+    buildCommand: sed -i "s|__NEGDESK_API__|${NEGDESK_API}|g; s|__NEGDESK_WEB__|${NEGDESK_WEB}|g" index.html
+    staticPublishPath: .
+    envVars:
+      - key: NEGDESK_API
+        sync: false  # the Desk API address, e.g. https://negotiation-api.onrender.com; leave empty to run without the Desk
+      - key: NEGDESK_WEB
+        sync: false  # the Desk web address, e.g. https://negotiation-web.onrender.com
