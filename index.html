@@ -2690,7 +2690,7 @@ function tkTr(x,view){const{r,w,tm}=x;const a=tkAction(r,w);
  const p=pathFor(r).filter(n=>n!==4),i=p.indexOf(+r.step),pct=i>=0?Math.round((i+.5)/p.length*100):0;
  const flow=`${esc(FLOW_LBL[r.flow]||r.flow||"")}${r.module==="GP"?` \u00b7 ${esc(money(r.amount,r.currency))}`:""}`;
  return`<tr class="tk-r ${cls}${a.eff?" mine":""}" data-case="${r._id}" tabindex="0">
-  <td class="c-req"><b>${esc(r.topic)}</b><span>${esc(r.no)} \u00b7 ${flow}</span></td>
+  <td class="c-req"><b>${esc(r.topic)}</b><span>${esc(r.no)} \u00b7 ${flow}</span><em class="tk-inl">${stChip(caseStatus(r))}${excChip(r)}</em></td>
   <td class="c-act ${a.eff?"do":"wait"}"><span>${a.eff?ico("ff"):ico("clock")}${esc(a.text)}</span></td>
   <td class="c-stg"><span>${esc(stageName(r.step))}</span><i class="tk-bar" aria-hidden="true"><u style="width:${pct}%"></u></i></td>
   <td class="c-sts">${stChip(caseStatus(r))}${excChip(r)}</td>
@@ -2711,23 +2711,24 @@ document.head.insertAdjacentHTML("beforeend",`<style id="tkcss">
 .hm-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 .hm-kpi{display:flex;align-items:center;gap:12px;padding:12px 16px;text-align:left}
 .hm-kpi .tx{display:grid;gap:1px}.hm-kpi .tx .l{font-size:12.5px;font-weight:600;color:var(--muted)}.hm-kpi .tx b{font-size:24px;line-height:1.1}.hm-kpi .tx small{font-size:12px;color:var(--muted)}
-.tk-wrap{overflow-x:auto}
-.tk-tbl{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:14px}
+.tk-wrap{overflow-x:auto;container-type:inline-size;container-name:tk}
+.tk-inl{display:none;font-style:normal;margin-top:6px}
+.tk-tbl{width:100%;border-collapse:collapse;border-spacing:0;table-layout:fixed;font-size:14px}
 .tk-tbl th{position:sticky;top:0;text-align:left;padding:10px 14px;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--raise);border-bottom:1px solid var(--line);white-space:nowrap}
-.tk-tbl .c-req{width:33%}.tk-tbl .c-act{width:23%}.tk-tbl .c-stg{width:14%}.tk-tbl .c-sts{width:15%}.tk-tbl .c-due{width:13%}.tk-tbl .c-go{width:40px}
-.tk-tbl td{padding:14px;border-bottom:1px solid var(--line);vertical-align:middle;min-width:0}
+.tk-tbl .c-req{width:30%}.tk-tbl .c-act{width:25%}.tk-tbl .c-stg{width:14%}.tk-tbl .c-sts{width:14%}.tk-tbl .c-due{width:13%}.tk-tbl .c-go{width:44px}
+.tk-tbl td{padding:14px;border-bottom:1px solid var(--line);vertical-align:middle;min-width:0;overflow:hidden;white-space:normal}.tk-tbl td *{white-space:normal}.tk-tbl .c-sts .st,.tk-tbl .c-due b{white-space:nowrap}
 .tk-r{cursor:pointer;transition:background .12s}.tk-r:hover,.tk-r:focus-visible{background:var(--raise);outline:none}
 .tk-r td:first-child{box-shadow:inset 4px 0 0 var(--line);padding-left:18px}
 .tk-r.mine td:first-child{box-shadow:inset 4px 0 0 var(--brand)}.tk-r.over td:first-child{box-shadow:inset 4px 0 0 var(--red)}.tk-r.today td:first-child{box-shadow:inset 4px 0 0 var(--amber)}
 .tk-r:last-child td{border-bottom:0}
-.tk-r .c-req{display:table-cell}.tk-r .c-req b{display:block;font-size:15px;color:var(--ink);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tk-r .c-req span{display:block;margin-top:3px;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tk-r .c-act span{display:flex;align-items:center;gap:7px;font-weight:600;line-height:1.3}.tk-r .c-act svg{width:15px;height:15px;flex:none}
+.tk-r .c-req{display:table-cell}.tk-r .c-req b{display:block;font-size:15px;color:var(--ink);line-height:1.3;overflow-wrap:anywhere}
+.tk-r .c-req span{display:block;margin-top:3px;font-size:12.5px;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
+.tk-r .c-act span{display:flex;align-items:flex-start;gap:7px;font-weight:600;line-height:1.35;overflow-wrap:anywhere}.tk-r .c-act svg{margin-top:2px}.tk-r .c-act svg{width:15px;height:15px;flex:none}
 .tk-r .c-act.do{color:var(--brand)}.tk-r .c-act.wait{color:var(--muted)}.tk-r .c-act.wait span{font-weight:500}
-.tk-r .c-stg span{display:block;font-size:13.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk-r .c-stg span{display:block;font-size:13.5px;color:var(--text);line-height:1.3;overflow-wrap:anywhere}
 .tk-bar{display:block;height:4px;border-radius:999px;background:var(--line);margin-top:7px;overflow:hidden}.tk-bar u{display:block;height:100%;background:var(--brand);border-radius:inherit;text-decoration:none}
 .tk-r .c-sts{white-space:normal}.tk-r .c-sts .st{margin:2px 4px 2px 0}
-.tk-r .c-due b{display:inline-block;padding:4px 11px;border-radius:999px;background:var(--raise);font-size:13px;font-weight:700;color:var(--text);white-space:nowrap}
+.tk-r .c-due b{display:inline-block;padding:4px 11px;border-radius:999px;background:var(--raise);font-size:13px;font-weight:700;color:var(--text);white-space:normal;text-align:center}
 .tk-r .c-due small{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
 .tk-r.over .c-due b{background:color-mix(in srgb,var(--red) 14%,var(--panel));color:var(--red)}.tk-r.today .c-due b{background:color-mix(in srgb,var(--amber) 16%,var(--panel));color:var(--amber)}
 .tk-r .c-go{color:var(--muted);text-align:center;padding-left:0;padding-right:10px}.tk-r:hover .c-go{color:var(--brand)}
@@ -2735,11 +2736,17 @@ document.head.insertAdjacentHTML("beforeend",`<style id="tkcss">
 .tk-grp i{font-style:normal;margin-left:8px;min-width:20px;padding:1px 7px;border-radius:999px;background:var(--raise);color:var(--text);font-size:11.5px;display:inline-block;text-align:center}
 .tk-grp.over td{color:var(--red)}.tk-grp.today td{color:var(--amber)}
 .hm-foot{display:flex;align-items:center;justify-content:space-between;padding:10px 20px 14px}
-@media (max-width:1100px){.tk-tbl .c-stg{display:none}.tk-tbl .c-req{width:38%}}
-@media (max-width:760px){.tk-tbl,.tk-tbl tbody,.tk-tbl tr,.tk-tbl td{display:block}.tk-tbl thead{display:none}.tk-wrap{overflow:visible}
- .tk-r{position:relative;padding:12px 40px 12px 18px;border-bottom:1px solid var(--line)}.tk-r td{padding:3px 0;border:0}.tk-r td:first-child,.tk-r.mine td:first-child,.tk-r.over td:first-child,.tk-r.today td:first-child{box-shadow:none;padding-left:0}
- .tk-r{box-shadow:inset 4px 0 0 var(--line)}.tk-r.mine{box-shadow:inset 4px 0 0 var(--brand)}.tk-r.over{box-shadow:inset 4px 0 0 var(--red)}.tk-r.today{box-shadow:inset 4px 0 0 var(--amber)}
- .tk-r .c-go{position:absolute;right:10px;top:50%;transform:translateY(-50%);padding:0}.tk-r .c-req b{white-space:normal}.tk-r .c-stg{display:none}.tk-grp td{padding:14px 18px 6px}}
+@container tk (max-width:1040px){.tk-tbl .c-stg{display:none}.tk-tbl .c-req{width:38%}.tk-tbl .c-act{width:27%}.tk-tbl .c-sts{width:19%}.tk-tbl .c-due{width:16%}}
+@container tk (max-width:800px){.tk-tbl .c-sts{display:none}.tk-inl{display:block}.tk-tbl .c-req{width:48%}.tk-tbl .c-act{width:30%}.tk-tbl .c-due{width:22%}}
+@container tk (max-width:600px){
+ .tk-tbl,.tk-tbl tbody,.tk-tbl tr,.tk-tbl td{display:block}.tk-tbl thead{display:none}.tk-wrap{overflow:visible}
+ .tk-tbl .c-sts{display:block;padding-top:4px}.tk-inl{display:none}.tk-r .c-sts .st{white-space:nowrap}
+ .tk-r{position:relative;padding:12px 40px 12px 18px;border-bottom:1px solid var(--line);box-shadow:inset 4px 0 0 var(--line)}
+ .tk-r.mine{box-shadow:inset 4px 0 0 var(--brand)}.tk-r.over{box-shadow:inset 4px 0 0 var(--red)}.tk-r.today{box-shadow:inset 4px 0 0 var(--amber)}
+ .tk-r td,.tk-tbl .c-req,.tk-tbl .c-act,.tk-tbl .c-due{width:auto;padding:3px 0;border:0}
+ .tk-r td:first-child,.tk-r.mine td:first-child,.tk-r.over td:first-child,.tk-r.today td:first-child{box-shadow:none;padding-left:0}
+ .tk-r .c-go{position:absolute;right:10px;top:50%;transform:translateY(-50%);padding:0;width:auto}.tk-r .c-req b{white-space:normal}.tk-r .c-stg{display:none}
+ .tk-grp td{padding:14px 18px 6px;display:block}}
 </style>`);
 /* ---------- Home (role based) ---------- */
 function digestInfo(){const I=items();const n=I.T.filter(x=>rulesFor(x.r).some(o=>o.x.is_consolidated&&o.to===S.role)).length;const df=calDef(S.entity);const eod=df.eod_time||"18:00";const t=today();
