@@ -546,7 +546,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand);outline:none;b
 .stepper li:last-child::before{display:none}
 .stepper li.d::before{background:var(--brand);opacity:.5}
 .stepper .no{width:34px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:11.5px;font-weight:700;background:var(--panel);border:1.5px solid var(--line);color:var(--muted);position:relative;z-index:1}
+.stepper .no{width:22px;height:22px;border-radius:50%;justify-self:center;font-size:0}.stepper .no svg{width:12px;height:12px}
 .stepper li.d .no{background:var(--brand-soft);border-color:transparent;color:var(--brand)}
+.stepper li.c .no::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--e-ink,#fff)}
 .stepper li.c .no{background:var(--electric);border-color:var(--e-ink);color:var(--e-ink)}
 .stepper li.x .no{background:var(--red);border-color:var(--red);color:#fff}
 .stepper .nm{font-size:13.5px;color:var(--text)}.stepper li.c .nm{font-weight:700;color:var(--ink)}
@@ -2610,27 +2612,135 @@ function runVerify(){const quick=matchMedia("(prefers-reduced-motion: reduce)").
   if(i<3)setTimeout(()=>tick(i+1),quick?60:420);else{$$("#gV [data-v]").forEach(x=>x.className="ok");$$("#gV .tick").forEach(t=>t.innerHTML=ico("check").replace('class="i"','class="i" style="width:13px;height:13px"'));
    setTimeout(()=>{const rs=activeUR().filter(r=>r.user===LG.sso);if(!rs.length){LG.step=1;S.loginMsg="No role assigned – contact Admin";render0();return}if(rs.length>1){LG.step=3;render0();return}signIn(LG.sso)},quick?60:320)}};tick(0)}
 
+
+/* Plain stages instead of step numbers: the screens say where a request is, not which number it is on. */
+const STAGE_NAMES=[[1,3,"Request"],[4,4,"Prerequisite"],[5,7,"FSK check"],[8,10,"Approval"],[11,16,"Sourcing"],[17,21,"Offers and negotiation"],[22,25,"Sourcing approval"],[26,29,"Contract and PO"],[30,30,"Shopping cart"],[31,31,"Offers"],[32,32,"Cart check"],[33,33,"Negotiation"],[34,34,"Approval"],[35,35,"PO approval"],[36,36,"Contract copy"]];
+function stageName(n){const x=STAGE_NAMES.find(a=>+n>=a[0]&&+n<=a[1]);return x?x[2]:"In progress"}
+function stageChip(no){const m=/^Steps?\s+(\d+)/.exec(String(no));if(!m)return no;return`<i class="dotst" aria-hidden="true"></i>${esc(stageName(m[1]))}`}
+document.head.insertAdjacentHTML("beforeend",`<style id="uxcss">
+.stg-tag{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--raise);color:var(--muted);font-size:11.5px;font-weight:600;vertical-align:1px}
+.dotst{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--brand);flex:none}
+.dotst.over{background:var(--red,#c0392b)}.dotst.today{background:var(--amber,#d68910)}
+.ri-no{display:inline-flex;align-items:center;gap:7px;text-transform:none;letter-spacing:0;font-weight:600}
+.hm-row .sn{display:inline-flex;align-items:center;justify-content:center;min-width:14px;width:auto;height:auto;background:none;border:0;padding:0}
+.turn .ac{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1.6fr);gap:12px 28px;align-items:center}
+.ac-main{display:grid;gap:4px;min-width:0}
+.ac-sub{font-size:13px;color:var(--muted)}
+.ac-stats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:0;align-items:stretch}
+.ac-s{display:grid;gap:2px;align-content:center;padding:2px 18px;border-left:1px solid var(--line);min-width:0}
+.ac-s>span{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ac-s>b{font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ac-s>b.over{color:var(--red)}.ac-s>b.today{color:var(--amber)}
+.ac-s>small{font-size:12.5px;color:var(--muted)}
+.ac-p .ac-bar{display:block;height:5px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:5px}
+.ac-p .ac-bar u{display:block;height:100%;border-radius:inherit;background:var(--brand);text-decoration:none}
+.ac-k{display:inline-flex;align-items:center;gap:7px;justify-self:start;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ac-k i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.ac-k.is-mine{color:var(--brand)}.ac-k.is-mine i{background:var(--brand);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand) 22%,transparent)}
+.ac-k.is-neg{color:var(--electric,#2f6fdb)}.ac-k.is-neg i{background:var(--electric,#2f6fdb)}
+.ac-k.is-done{color:var(--brand)}.ac-k.is-done i{background:var(--brand)}
+.ac-t{font-size:18px;font-weight:700;color:var(--ink);line-height:1.25;letter-spacing:-.005em}
+.ac-m{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.ac-due{font-weight:650;color:var(--text)}.ac-due.over{color:var(--red)}.ac-due.today{color:var(--amber)}
+.ac-o{font-size:12.5px;color:var(--muted)}
+.rp-act.slim{padding:18px 22px;gap:18px 28px;border-radius:14px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+.rp-act.slim:not(:has(textarea)){display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}
+.rp-act.slim .actbox .actrow{justify-content:flex-end;margin:0}
+.rp-act.slim .actbox .btn.pri{min-height:44px;padding:0 24px;border-radius:10px;font-weight:700;box-shadow:0 6px 14px -8px var(--brand)}
+@media (max-width:900px){.turn .ac{grid-template-columns:1fr}.ac-s:first-child{border-left:0;padding-left:0}.rp-act.slim:not(:has(textarea)){grid-template-columns:1fr}.rp-act.slim .actbox .actrow{justify-content:stretch}.rp-act.slim .actbox .btn.pri{width:100%}}
+@media (max-width:560px){.ac-stats{grid-auto-flow:row}.ac-s{border-left:0;border-top:1px solid var(--line);padding:8px 0}.ac-s:first-child{border-top:0}}
+.rp-act.mine{border-left:4px solid var(--brand)}
+.rp-act.mine .actbox .btn.pri{min-height:42px;padding:0 20px}
+</style>`);
 /* ---------- Shared case row (relay track) ---------- */
 function trackHTML(r){const p=pathFor(r).filter(n=>n!==4);const n=p.length;const i=p.indexOf(+r.step);const closed=r.status==="CLOSED",dec=r.status==="DECLINED";
  /* milestone tracker: one continuous line, dark up to the current step, a location pin on it (read only) */
- const lab=closed?"All steps complete":i<0?`${n} steps on this route`:`Step ${i+1} of ${n} on this route`;
+ const lab=closed?"Complete":i<0?"Not started":`${Math.round((i+.5)/n*100)}% of the route`;
  const pos=closed?100:i<0?0:(i+.5)/n*100;
- return`<span class="mstone${closed?" done":""}${dec?" dec":""}" role="img" aria-label="${lab}">${i>=0&&!closed?`<b class="pin" style="left:${pos.toFixed(2)}%" title="Step ${r.step}">${ico("mpin")}</b>`:""}<span class="ms"><b style="width:${pos.toFixed(2)}%"></b></span><small>${lab}</small></span>`}
+ return`<span class="mstone${closed?" done":""}${dec?" dec":""}" role="img" aria-label="${lab}">${i>=0&&!closed?`<b class="pin" style="left:${pos.toFixed(2)}%" title="${esc(stageName(r.step))}">${ico("mpin")}</b>`:""}<span class="ms"><b style="width:${pos.toFixed(2)}%"></b></span><small>${lab}</small></span>`}
 function stageHTML(r){const p=pathFor(r).filter(n=>n!==4);const n=p.length;const i=p.indexOf(+r.step);const closed=r.status==="CLOSED",dec=r.status==="DECLINED";
  /* k = position of the current step on this request's route, n = number of steps on that route */
  const k=closed?n:i+1;const pct=n?Math.round(k/n*100):0;
  const name=closed?"Completed":stepRow(r.module,r.step)?.name||"Step "+r.step;
  const nx=!closed&&!dec&&i>=0&&i<n-1?stepRow(r.module,p[i+1]):null;
  const lead=nx?"Next: ":"";const next=closed?"All steps complete":dec?"Declined, no further steps":nx?nx.name:"Last step, nothing follows";
- return`<span class="stg" role="img" aria-label="${esc(name)}, step ${k} of ${n}, ${pct}% complete. ${esc(lead+next)}"><span class="stg-h"><span class="stg-n">${esc(name)}</span><span class="stg-b">${k}/${n}</span></span><span class="stg-bar${dec?" dec":""}"><i style="width:${pct}%"></i></span><span class="stg-x">${lead?`<span>${lead}</span>`:""}${esc(next)}</span></span>`}
+ return`<span class="stg" role="img" aria-label="${esc(name)}, ${pct}% complete. ${esc(lead+next)}"><span class="stg-h"><span class="stg-n">${esc(name)}</span><span class="stg-b">${pct}%</span></span><span class="stg-bar${dec?" dec":""}"><i style="width:${pct}%"></i></span><span class="stg-x">${lead?`<span>${lead}</span>`:""}${esc(next)}</span></span>`}
 /* budget line shown under the request title */
 const budgetLine=r=>`<span class="r-bud">${esc(FLOW_LBL[r.flow]||r.flow)} \u00b7 ${r.module==="GP"?esc(money(r.amount,r.currency)):esc(r.sc)}</span>`;
-function rowHTML(x,mode){const{r,w,tm}=x;const s=stepRow(r.module,r.step);const mine=mode==="T";
+function rowHTML(x,mode){return tkRow(x,mode==="T"?"tasks":"queue")}
+function rowHTMLOld(x,mode){const{r,w,tm}=x;const s=stepRow(r.module,r.step);const mine=mode==="T";
  const right=mine?`<b class="${tm.bucket}">${esc(dueText(tm))}</b><span>${plural(tm.age,"working day")} at step</span>`:`<b>${esc(w.task.map(roleName).join(", ")||"AIS")}</b><span>${tm.over?`<span style="color:var(--red)">${esc(dueText(tm))}</span>`:plural(tm.age,"working day")+" at step"}</span>`;
  return`<button class="row${mine?" mine":""}" data-case="${r._id}"><span class="r-main"><span class="r-id"><b>${esc(r.no)}</b>${stChip(caseStatus(r))}</span><span class="r-topic">${esc(r.topic)}</span>${budgetLine(r)}</span>
  <span class="r-tr">${stageHTML(r)}</span><span class="r-due">${right}</span></button>`}
 const emptyHTML=(t,s,ic="check")=>`<div class="empty"><div class="art">${ico(ic)}</div><strong>${t}</strong>${s}</div>`;
 
+
+/* ---------- The task table: what it is, what to do next, where it stands, when it is due ---------- */
+const TK_RIGHT='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+function tkAction(r,w){
+ const eff=w.task.includes(S.role)&&(S.role!=="BUYER"||!p5Owner(r)||p5Owner(r)===S.user);const dn=r.status==="IN_NEGBOT";
+ const s=stepRow(r.module,r.step);
+ if(eff)return{eff:true,text:dn?"Follow the negotiation with the suppliers":((typeof P5_TITLE!=="undefined"&&P5_TITLE[r.step])||s?.name||"")};
+ const who=w.task.map(roleName).join(", ")||(dn?"the Negotiation Desk":"AIS");
+ return{eff:false,text:dn?"Negotiation in progress":`Waiting on ${who}`}}
+function tkTr(x,view){const{r,w,tm}=x;const a=tkAction(r,w);
+ const cls=tm.over?"over":tm.bucket==="today"?"today":tm.bucket==="week"?"week":"later";
+ const due=tm.over?`${plural(tm.over,"day")} overdue`:tm.bucket==="today"?"Due today":`${wdOf(tm.due)} ${fmtD(tm.due)}`;
+ const left=tm.over||tm.bucket==="today"?"":`${plural(wdBetween(r.entity,today(),tm.due),"working day")} left`;
+ const p=pathFor(r).filter(n=>n!==4),i=p.indexOf(+r.step),pct=i>=0?Math.round((i+.5)/p.length*100):0;
+ const flow=`${esc(FLOW_LBL[r.flow]||r.flow||"")}${r.module==="GP"?` \u00b7 ${esc(money(r.amount,r.currency))}`:""}`;
+ return`<tr class="tk-r ${cls}${a.eff?" mine":""}" data-case="${r._id}" tabindex="0">
+  <td class="c-req"><b>${esc(r.topic)}</b><span>${esc(r.no)} \u00b7 ${flow}</span></td>
+  <td class="c-act ${a.eff?"do":"wait"}"><span>${a.eff?ico("ff"):ico("clock")}${esc(a.text)}</span></td>
+  <td class="c-stg"><span>${esc(stageName(r.step))}</span><i class="tk-bar" aria-hidden="true"><u style="width:${pct}%"></u></i></td>
+  <td class="c-sts">${stChip(caseStatus(r))}${excChip(r)}</td>
+  <td class="c-due"><b>${esc(due)}</b>${left?`<small>${esc(left)}</small>`:""}</td>
+  <td class="c-go" aria-hidden="true">${TK_RIGHT}</td></tr>`}
+function tkDraftTr(r){return`<tr class="tk-r later" data-case="${r._id}" tabindex="0"><td class="c-req"><b>${esc(r.topic||"Untitled draft")}</b><span>${esc(r.no)}</span></td><td class="c-act wait"><span>${ico("doc")}Not submitted yet</span></td><td class="c-stg"><span>Draft</span></td><td class="c-sts"></td><td class="c-due"><b>Saved ${esc(relD(r.created))}</b></td><td class="c-go" aria-hidden="true">${TK_RIGHT}</td></tr>`}
+function tkTable(list,view,o={}){
+ const G=[["over","Overdue"],["today","Due today"],["week","This week"],["later","Later"]];
+ const head=`<thead><tr><th class="c-req">Request</th><th class="c-act">Next action</th><th class="c-stg">Stage</th><th class="c-sts">Status</th><th class="c-due">Due</th><th class="c-go"></th></tr></thead>`;
+ const body=o.drafts?list.map(tkDraftTr).join(""):o.groups?G.map(([k,l])=>{const L=list.filter(x=>(x.tm.over?"over":x.tm.bucket)===k);return L.length?`<tr class="tk-grp ${k}"><td colspan="6"><span>${l}</span><i>${L.length}</i></td></tr>`+L.map(x=>tkTr(x,view)).join(""):""}).join(""):list.map(x=>tkTr(x,view)).join("");
+ return`<div class="tk-wrap"><table class="tk-tbl">${head}<tbody>${body}</tbody></table></div>`}
+function tkGroups(list,view){return tkTable(list,view,{groups:view!=="queue"&&view!=="over"})}
+function tkRow(x,view){return tkTr(x,view)}
+function tkDraft(r){return tkDraftTr(r)}
+document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.classList&&e.target.classList.contains("tk-r")){e.preventDefault();e.target.click()}});
+document.head.insertAdjacentHTML("beforeend",`<style id="tkcss">
+.hm-sum{margin:6px 0 0;font-size:15px;color:var(--text)}.hm-sum b{font-weight:700}.hm-sum b.over{color:var(--red)}.hm-sum b.today{color:var(--amber)}
+.hm-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.hm-kpi{display:flex;align-items:center;gap:12px;padding:12px 16px;text-align:left}
+.hm-kpi .tx{display:grid;gap:1px}.hm-kpi .tx .l{font-size:12.5px;font-weight:600;color:var(--muted)}.hm-kpi .tx b{font-size:24px;line-height:1.1}.hm-kpi .tx small{font-size:12px;color:var(--muted)}
+.tk-wrap{overflow-x:auto}
+.tk-tbl{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:14px}
+.tk-tbl th{position:sticky;top:0;text-align:left;padding:10px 14px;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--raise);border-bottom:1px solid var(--line);white-space:nowrap}
+.tk-tbl .c-req{width:33%}.tk-tbl .c-act{width:23%}.tk-tbl .c-stg{width:14%}.tk-tbl .c-sts{width:15%}.tk-tbl .c-due{width:13%}.tk-tbl .c-go{width:40px}
+.tk-tbl td{padding:14px;border-bottom:1px solid var(--line);vertical-align:middle;min-width:0}
+.tk-r{cursor:pointer;transition:background .12s}.tk-r:hover,.tk-r:focus-visible{background:var(--raise);outline:none}
+.tk-r td:first-child{box-shadow:inset 4px 0 0 var(--line);padding-left:18px}
+.tk-r.mine td:first-child{box-shadow:inset 4px 0 0 var(--brand)}.tk-r.over td:first-child{box-shadow:inset 4px 0 0 var(--red)}.tk-r.today td:first-child{box-shadow:inset 4px 0 0 var(--amber)}
+.tk-r:last-child td{border-bottom:0}
+.tk-r .c-req{display:table-cell}.tk-r .c-req b{display:block;font-size:15px;color:var(--ink);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk-r .c-req span{display:block;margin-top:3px;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk-r .c-act span{display:flex;align-items:center;gap:7px;font-weight:600;line-height:1.3}.tk-r .c-act svg{width:15px;height:15px;flex:none}
+.tk-r .c-act.do{color:var(--brand)}.tk-r .c-act.wait{color:var(--muted)}.tk-r .c-act.wait span{font-weight:500}
+.tk-r .c-stg span{display:block;font-size:13.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk-bar{display:block;height:4px;border-radius:999px;background:var(--line);margin-top:7px;overflow:hidden}.tk-bar u{display:block;height:100%;background:var(--brand);border-radius:inherit;text-decoration:none}
+.tk-r .c-sts{white-space:normal}.tk-r .c-sts .st{margin:2px 4px 2px 0}
+.tk-r .c-due b{display:inline-block;padding:4px 11px;border-radius:999px;background:var(--raise);font-size:13px;font-weight:700;color:var(--text);white-space:nowrap}
+.tk-r .c-due small{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
+.tk-r.over .c-due b{background:color-mix(in srgb,var(--red) 14%,var(--panel));color:var(--red)}.tk-r.today .c-due b{background:color-mix(in srgb,var(--amber) 16%,var(--panel));color:var(--amber)}
+.tk-r .c-go{color:var(--muted);text-align:center;padding-left:0;padding-right:10px}.tk-r:hover .c-go{color:var(--brand)}
+.tk-grp td{padding:16px 18px 8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--panel);border-bottom:1px solid var(--line)}
+.tk-grp i{font-style:normal;margin-left:8px;min-width:20px;padding:1px 7px;border-radius:999px;background:var(--raise);color:var(--text);font-size:11.5px;display:inline-block;text-align:center}
+.tk-grp.over td{color:var(--red)}.tk-grp.today td{color:var(--amber)}
+.hm-foot{display:flex;align-items:center;justify-content:space-between;padding:10px 20px 14px}
+@media (max-width:1100px){.tk-tbl .c-stg{display:none}.tk-tbl .c-req{width:38%}}
+@media (max-width:760px){.tk-tbl,.tk-tbl tbody,.tk-tbl tr,.tk-tbl td{display:block}.tk-tbl thead{display:none}.tk-wrap{overflow:visible}
+ .tk-r{position:relative;padding:12px 40px 12px 18px;border-bottom:1px solid var(--line)}.tk-r td{padding:3px 0;border:0}.tk-r td:first-child,.tk-r.mine td:first-child,.tk-r.over td:first-child,.tk-r.today td:first-child{box-shadow:none;padding-left:0}
+ .tk-r{box-shadow:inset 4px 0 0 var(--line)}.tk-r.mine{box-shadow:inset 4px 0 0 var(--brand)}.tk-r.over{box-shadow:inset 4px 0 0 var(--red)}.tk-r.today{box-shadow:inset 4px 0 0 var(--amber)}
+ .tk-r .c-go{position:absolute;right:10px;top:50%;transform:translateY(-50%);padding:0}.tk-r .c-req b{white-space:normal}.tk-r .c-stg{display:none}.tk-grp td{padding:14px 18px 6px}}
+</style>`);
 /* ---------- Home (role based) ---------- */
 function digestInfo(){const I=items();const n=I.T.filter(x=>rulesFor(x.r).some(o=>o.x.is_consolidated&&o.to===S.role)).length;const df=calDef(S.entity);const eod=df.eod_time||"18:00";const t=today();
  const[h,m]=eod.split(":").map(Number);const now=new Date();const mins=h*60+m-(now.getHours()*60+now.getMinutes());return{n,eod,work:isWork(S.entity,t),mins,next:nextWork(S.entity,addD(t,1))}}
@@ -2639,12 +2749,12 @@ function hmDelay(r,tm){if(tm.over)return`<span class="st st-r" title="${esc(dueT
  if(tm.bucket==="today")return'<span class="st st-w">Due today</span>';const n=wdBetween(r.entity,today(),tm.due);return`<span class="st st-o">On track</span>${n>0?`<small>${plural(n,"day")} left</small>`:""}`}
 function hmRow(x){const r=x.r,s=stepRow(r.module,r.step),tm=x.tm;
  return`<button class="hm-row${tm.over?" over":""}" data-case="${r._id}"><span class="c-req"><span class="id">${esc(r.no)}</span><span class="tt">${esc(r.topic)}</span></span>
-  <span class="c-step"><span class="sn">${r.step}</span><span>${esc(s?.name||"")}</span></span>
+  <span class="c-step"><span class="sn"><i class="dotst ${tm.over?"over":tm.bucket==="today"?"today":""}"></i></span><span>${esc(s?.name||"")}</span></span>
   <span class="c-due"><b>${esc(wdOf(tm.due))} ${esc(fmtD(tm.due))}</b></span>
   <span class="c-dl">${hmDelay(r,tm)}</span>
   <span class="c-st">${stChip(caseStatus(r))}${excChip(r)}</span></button>`}
 function hmDraftRow(r){return`<button class="hm-row" data-case="${r._id}"><span class="c-req"><span class="id">${esc(r.no)}</span><span class="tt">${esc(r.topic||"Untitled draft")}</span></span>
-  <span class="c-step"><span class="sn">${r.step||3}</span><span>Not submitted yet</span></span>
+  <span class="c-step"><span class="sn"><i class="dotst"></i></span><span>Not submitted yet</span></span>
   <span class="c-due"><b>\u2014</b><small>Saved ${esc(relD(r.created))}</small></span>
   <span class="c-dl"><span class="muted">\u2014</span></span>
   <span class="c-st">${stChip("DRAFT")}</span></button>`}
@@ -2673,18 +2783,18 @@ function homeHTML(){const I=items(),T=I.T,D=I.D;const over=T.filter(x=>x.tm.over
  if(!dg.work)dl=`Today is not a working day in the ${esc(S.entity)} calendar, so no reminders go out. They resume ${esc(relD(dg.next))}.`;
  else if(dg.n&&dg.mins>0)dl=`At <b>${esc(dg.eod)}</b> AIS sends your end-of-day list with <b>${plural(dg.n,"item")}</b>, in ${Math.floor(dg.mins/60)?Math.floor(dg.mins/60)+" h ":""}${dg.mins%60} min.`;
  else if(dg.n)dl=`Today's end-of-day list went out at ${esc(dg.eod)} with ${plural(dg.n,"item")}. The next one goes ${esc(relD(dg.next))}.`;
- const kpi=(k,ic,l,v,sub,o={})=>`<button class="hm-kpi${o.bad?" bad":""}" data-hm="${k}" ${o.off?"disabled":""} aria-pressed="${view===k}" title="${esc(sub)}"><span class="ic" aria-hidden="true">${ico(ic)}</span><span class="tx"><span class="l">${l}</span><b>${v}</b></span></button>`;
- const kpis=kpi("tasks","tasks","My tasks",T.length,tod?`${tod} due today`:"waiting for you")+kpi("over","alert","Overdue",over,over?"past their due date":"all on time",{bad:over>0,off:!over})
+ const kpi=(k,ic,l,v,sub,o={})=>`<button class="hm-kpi${o.bad?" bad":""}" data-hm="${k}" ${o.off?"disabled":""} aria-pressed="${view===k}" title="${esc(sub)}"><span class="ic" aria-hidden="true">${ico(ic)}</span><span class="tx"><span class="l">${l}</span><b>${v}</b><small>${esc(sub)}</small></span></button>`;
+ const kpis=kpi("tasks","tasks","To do",T.length,tod?`${tod} due today`:"waiting for you")+kpi("over","alert","Overdue",over,over?"past the due date":"all on time",{bad:over>0,off:!over})
   +(init?kpi("drafts","doc","Drafts",D.length,"not submitted yet")+kpi("mine","gp","My requests",mine.length,`${mine.filter(isOpen).length} open`):"")
   +kpi("queue","eye",ov?"All open requests":"Watching",I.Q.length,ov?"read only":"following")
   +(init?"":kpi("done","check","Finished",I.C.length,"closed or declined"));
- const list=drafts?D:view==="over"?T.filter(x=>x.tm.over):view==="queue"?I.Q:T,cap=6,shown=list.slice(0,cap);
- const title=drafts?"Drafts":view==="over"?"Overdue tasks":view==="queue"?"Open requests":"Needs your attention";
- const rows=shown.length?`<div class="hm-cols" aria-hidden="true"><span>Request</span><span>Current step</span><span>Due date</span><span>Delay</span><span>Status</span></div>${drafts?shown.map(hmDraftRow).join(""):shown.map(hmRow).join("")}`
-  :drafts?emptyHTML("No drafts","Requests you save without submitting will wait for you here.","list"):emptyHTML("You are all caught up","Nothing needs you right now. New tasks will show up here as soon as they reach you.");
- const more=list.length>cap?`<div class="hm-foot"><span>Showing ${cap} of ${list.length}</span></div>`:"";
+ const list=drafts?D:view==="over"?T.filter(x=>x.tm.over):view==="queue"?I.Q:T,cap=8,shown=list.slice(0,cap);
+ const title=drafts?"Your drafts":view==="over"?"Overdue tasks":view==="queue"?(ov?"All open requests":"Requests you follow"):"Your tasks";
+ const rows=shown.length?(drafts?tkTable(shown,"drafts",{drafts:true}):tkGroups(shown,view)):
+  drafts?emptyHTML("No drafts","Requests you save without submitting will wait for you here.","list"):emptyHTML("You are all caught up","Nothing needs you right now. New tasks will show up here as soon as they reach you.");
+ const more=list.length>cap?`<div class="hm-foot"><span>Showing ${cap} of ${list.length}</span>${drafts?"":`<button class="linkbtn" data-hmall="${view}">Show all ${list.length}</button>`}</div>`:"";
  const rp=(typeof p10!=="undefined"&&p10.rolePanelHTML?p10.rolePanelHTML:rolePanelHTML)(I);
- return`<div class="hm-top"><div class="hm-top-t"><h1>Good ${hr<12?"morning":hr<17?"afternoon":"evening"}, ${esc(roleName(S.role))}</h1>${dl?`<p class="hm-note">${ico("clock")}<span>${dl}</span></p>`:""}</div>${init?`<div class="hm-top-a"><button class="btn pri" data-hmgo="open:new">${ico("plus")}Start a request</button></div>`:""}</div>
+ return`<div class="hm-top"><div class="hm-top-t"><h1>Good ${hr<12?"morning":hr<17?"afternoon":"evening"}, ${esc(roleName(S.role))}</h1>${T.length?`<p class="hm-sum">${plural(T.length,"task")} for you${over||tod?": ":"."}${[over?`<b class="over">${over} overdue</b>`:"",tod?`<b class="today">${tod} due today</b>`:""].filter(Boolean).join(", ")}${over||tod?".":""}</p>`:`<p class="hm-sum">Nothing needs you right now.</p>`}${dl?`<p class="hm-note">${ico("clock")}<span>${dl}</span></p>`:""}</div>${init?`<div class="hm-top-a"><button class="btn pri" data-hmgo="open:new">${ico("plus")}Start a request</button></div>`:""}</div>
  <div class="hm-kpis">${kpis}</div>
  <section class="hm-card hm-main" aria-labelledby="hmMain"><div class="hm-ch"><h2 id="hmMain">${title}</h2>${drafts?"":`<button class="linkbtn" data-hmall="${view}">${view==="queue"?"View all requests":view==="over"?"View all overdue":"View all tasks"}</button>`}</div>${rows}${more}</section>
  ${hmRenewHTML()}
@@ -2734,7 +2844,7 @@ function tasksHTML(){const I=items(),T=I.T;const cnt=k=>k==="all"?T.length:T.fil
  <div id="tList"></div>${T.some(x=>x.tm.assumed)?`<p class="fine" data-note>Where Process Step has no standard TAT yet, the due date assumes ${ASSUMED_TAT} working days.</p>`:""}`}
 function fillTasks(){const I=items();const q=S.tq.toLowerCase();let L=I.T.filter(x=>(S.tf==="all"||x.tm.bucket===S.tf)&&(!S.sf||caseStatus(x.r)===S.sf)&&(S.tm==="all"||modOfCase(x.r)===S.tm)&&(!q||(x.r.no+" "+x.r.topic+" "+x.r.globe+" "+x.r.sc).toLowerCase().includes(q)));
  const el=$("#tList");if(!L.length){el.innerHTML=`<div class="rows">${I.T.length?emptyHTML("No task matches","Clear the filter to see all "+I.T.length+" tasks.","search"):emptyHTML("You are clear","When a request reaches a step Step Visibility gives to "+esc(roleName(S.role))+", it lands here with its due date.")}</div>`;return}
- el.innerHTML=`<div class="rows">${BUCKETS.map(([k,l])=>{const g=L.filter(x=>x.tm.bucket===k);return g.length?`<div class="grp-h ${k}">${l}<span class="ct">${g.length}</span></div>`+g.map(x=>rowHTML(x,"T")).join(""):""}).join("")}</div>`}
+ el.innerHTML=tkTable(L,"tasks",{groups:true})}
 function bindTasks(){fillTasks();$$("[data-tf]").forEach(b=>b.onclick=()=>{S.tf=b.dataset.tf;$$("[data-tf]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.tf===S.tf));fillTasks()});
  const sc=$("#sfClear");if(sc)sc.onclick=()=>{S.sf="";render()};
  $("#tQ").oninput=e=>{S.tq=e.target.value;fillTasks()};const m=$("#tM");if(m)m.onchange=e=>{S.tm=e.target.value;fillTasks()}}
@@ -2748,7 +2858,7 @@ function queueHTML(){const I=items();const st=[...new Set(I.Q.map(x=>caseStatus(
 function fillQueue(){const I=items(),q=S.qq.toLowerCase();const el=$("#qList");const m=r=>!q||(r.no+" "+r.topic+" "+r.globe+" "+r.sc).toLowerCase().includes(q);
  if(S.qf==="closed"){const L=I.C.filter(m);el.innerHTML=L.length?`<div class="rows">${L.map(r=>`<button class="row" data-case="${r._id}"><span class="r-main"><span class="r-id"><b>${esc(r.no)}</b>${stChip(caseStatus(r))}</span><span class="r-topic">${esc(r.topic)}</span>${budgetLine(r)}</span><span class="r-tr">${stageHTML(r)}</span><span class="r-due"><b>${esc(fmtD(r.closed))}</b><span>${r.status==="DECLINED"?"Declined":"Closed"}</span></span></button>`).join("")}</div>`:`<div class="rows">${emptyHTML("Nothing finished yet","","list")}</div>`;return}
  const L=I.Q.filter(x=>(S.qf==="all"||caseStatus(x.r)===S.qf)&&m(x.r));
- el.innerHTML=L.length?`<div class="rows">${L.map(x=>rowHTML(x,"Q")).join("")}</div>`:`<div class="rows">${emptyHTML(I.Q.length?"No request matches":"You are not following any request","Requests appear here when they reach a step where you are a stakeholder.","eye")}</div>`}
+ el.innerHTML=L.length?tkTable(L,"queue",{}):`<div class="rows">${emptyHTML(I.Q.length?"No request matches":"You are not following any request","Requests appear here when they reach a step where you are a stakeholder.","eye")}</div>`}
 function bindQueue(){if(S.qf!=="all"&&S.qf!=="closed"&&!items().Q.some(x=>caseStatus(x.r)===S.qf))S.qf="all";fillQueue();$$("[data-qf]").forEach(b=>b.onclick=()=>{S.qf=b.dataset.qf;$$("[data-qf]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.qf===S.qf));fillQueue()});$("#qQ").oninput=e=>{S.qq=e.target.value;fillQueue()}}
 
 /* ---------- Module landing ---------- */
@@ -2761,8 +2871,8 @@ function moduleHTML(mod){const a=access(S.role,S.entity),I=items(),title=MODS.fi
   <div class="panel"><h3>Where requests are late</h3><p class="sub">Overdue requests by step.</p>${top.length?`<div class="bars">${top.map(([k,n])=>`<div class="bar-r"><span>${esc(k)}</span><span class="tr"><i class="x" style="width:${n/mx*100}%"></i></span><b>${n}</b></div>`).join("")}</div>`:'<p class="fine">Nothing is overdue.</p>'}</div></div>
   <details class="disc"><summary>Report steps this role follows</summary><div>${tbl}</div></details>`}
  return`<div class="page-h"><div><h1>${esc(title)}</h1><p class="sub">${MOD_NOTE[mod]||""}</p></div></div>
- <section class="sec"><div class="sec-h"><h2>Your tasks here<span class="c">${T.length}</span></h2></div>${T.length?`<div class="rows">${T.map(x=>rowHTML(x,"T")).join("")}</div>`:`<div class="rows">${emptyHTML("Nothing waiting for you in "+esc(title),"")}</div>`}</section>
- <section class="sec"><div class="sec-h"><h2>Watching here<span class="c">${Q.length}</span></h2></div>${Q.length?`<div class="rows">${Q.map(x=>rowHTML(x,"Q")).join("")}</div>`:`<div class="rows">${emptyHTML("Not following anything here","","eye")}</div>`}</section>
+ <section class="sec"><div class="sec-h"><h2>Your tasks here<span class="c">${T.length}</span></h2></div>${T.length?tkTable(T,"tasks",{}):`<div class="rows">${emptyHTML("Nothing waiting for you in "+esc(title),"")}</div>`}</section>
+ <section class="sec"><div class="sec-h"><h2>Watching here<span class="c">${Q.length}</span></h2></div>${Q.length?tkTable(Q,"queue",{}):`<div class="rows">${emptyHTML("Not following anything here","","eye")}</div>`}</section>
  <details class="disc"><summary>Steps ${esc(roleName(S.role))} owns or follows in ${esc(title)}</summary><div><p class="sub" style="margin-bottom:10px">Computed live from Role, Process Step and Step Visibility; editing them changes this list and the Task List immediately.</p>${tbl}</div></details>`}
 
 /* ---------- Drawer ---------- */
@@ -2779,10 +2889,18 @@ function openCase(id){const r=DB.req.find(x=>x._id===id);if(!r)return;if(r.entit
  const[verb]=STEP_VERB(r);const ent=DB.entity.find(e=>e.code===r.entity);const st=DB.sourcing.find(x=>x.entity===r.entity&&x.code===r.sourcing);
  const owners=w.task.map(c=>`${roleName(c)} (${roleHolders(c,r.entity).map(uName).join(", ")})`).join("; ");
  let turn="";
- if(open)turn=`<div class="turn ${mine?"mine":""}"><div class="who">${mine?"Your turn":`With ${esc(w.task.map(roleName).join(", ")||"AIS")}`}</div><p>Step ${r.step}, ${esc(s?.name||"")}${w.via==="system"?" (runs in AIS)":""}</p>
-  <p>At this step since ${esc(relD(r.entered))}, ${plural(tm.age,"working day")}. <span class="${tm.over?"due-over":tm.bucket==="today"?"due-today":""}">${esc(dueText(tm))}</span> (${esc(fmtD(tm.due))}).</p>
-  ${!mine&&owners?`<p class="fine">${esc(owners)}</p>`:""}${tm.assumed?`<p class="fine">No standard TAT for this step yet, so AIS assumes ${ASSUMED_TAT} working days (US-027 AC2).</p>`:""}</div>`;
- else turn=`<div class="turn"><div class="who">${r.status==="DECLINED"?"Declined":"Closed"} ${esc(relD(r.closed))}</div><p>${esc(r.hist.filter(h=>h.note).slice(-1)[0]?.note||"All steps on the route are complete.")}</p></div>`;
+ if(open){const eff=mine&&(S.role!=="BUYER"||!p5Owner(r)||p5Owner(r)===S.user);const dn=r.status==="IN_NEGBOT";
+  const who=w.task.map(roleName).join(", ")||(dn?"the Negotiation Desk":"AIS");
+  const title=eff&&dn?"Follow the negotiation with the suppliers":eff?((typeof P5_TITLE!=="undefined"&&P5_TITLE[r.step])||s?.name||""):dn?"Negotiation in progress":(s?.name||"");
+  const label=eff?"Action needed":dn?"In negotiation":`Waiting on ${who}`;
+  const since=`${eff?"With you":"With "+who} since ${relD(r.entered)}`;
+  const pth=pathFor(r).filter(n=>n!==4),pi=pth.indexOf(+r.step),pct=pi>=0?Math.round((pi+.5)/pth.length*100):0;
+  const stat=(k,v,sub,cls="")=>`<div class="ac-s"><span>${esc(k)}</span><b class="${cls}">${esc(v)}</b>${sub?`<small>${esc(sub)}</small>`:""}</div>`;
+  const dueCls=tm.over?"over":tm.bucket==="today"?"today":"";
+  turn=`<div class="turn ${eff?"mine":""}"><div class="ac">
+   <div class="ac-main"><span class="ac-k ${eff?"is-mine":dn?"is-neg":"is-wait"}"><i></i>${esc(label)}</span><div class="ac-t">${esc(title)}</div><div class="ac-sub">${esc(stageName(r.step))}${w.via==="system"?" \u00b7 runs automatically":""}</div></div>
+   <div class="ac-stats">${stat("Due",`${wdOf(tm.due)} ${fmtD(tm.due)}`,tm.over?`${plural(tm.over,"working day")} overdue`:tm.bucket==="today"?"Due today":`${plural(wdBetween(r.entity,today(),tm.due),"working day")} left`,dueCls)}${stat(eff?"With you since":"Waiting since",relD(r.entered),tm.age?plural(tm.age,"working day"):"Just arrived")}${eff?`<div class="ac-s ac-p"><span>Progress</span><b>${pct}%</b><i class="ac-bar"><u style="width:${pct}%"></u></i></div>`:stat("With",who,w.task.flatMap(c=>roleHolders(c,r.entity).map(uName)).slice(0,2).join(", "))}</div></div></div>`}
+ else turn=`<div class="turn"><div class="ac"><div class="ac-main"><span class="ac-k is-done"><i></i>${r.status==="DECLINED"?"Declined":"Completed"}</span><div class="ac-sub">${esc(relD(r.closed))}</div></div></div><p>${esc(r.hist.filter(h=>h.note).slice(-1)[0]?.note||"All steps on the route are complete.")}</p></div>`;
  const actBox=mine?`<div class="actbox"><label for="cmt">Comment ${canDecline(r)?"(required to decline)":"(optional)"}</label><textarea id="cmt" placeholder="Add a note for the history"></textarea>
   <div class="actrow"><button class="btn pri" id="doAct">${ico("check")}${esc(verb)}</button>${canDecline(r)?`<button class="btn danger" id="doDec">Decline</button>`:""}</div>
   <p class="fine">Prototype: the full screen for this step arrives with its epic. Acting here completes the step so you can follow the request to the next owner, with notifications.</p></div>`:"";
@@ -2790,17 +2908,17 @@ function openCase(id){const r=DB.req.find(x=>x._id===id);if(!r)return;if(r.entit
  const p=pathFor(r).filter(n=>n!==4);const ci=p.indexOf(+r.step);let planned=tm.due;const tat=n=>{const x=stepRow(r.module,n);return x&&x.tat_days!==""?+x.tat_days:ASSUMED_TAT};
  const lis=p.map((n,j)=>{const x=stepRow(r.module,n);const ww=whoAt(r,n);const hd=[...r.hist].reverse().find(h=>+h.step===n);let cls="",dt="";
   if(r.status==="CLOSED"||j<ci){cls="d";dt=hd?fmtD(hd.d):""}else if(j===ci){cls=r.status==="DECLINED"?"x":open?"c":"d";dt=open?"Due "+fmtD(tm.due):hd?fmtD(hd.d):""}else{if(open){planned=addWork(r.entity,planned,tat(n));dt="Plan "+fmtD(planned)}}
-  return{j,h:`<li class="${cls}"><span class="no">${n}</span><span class="nm">${esc(x?.name||"")}<small>${esc(ww.via==="system"?"AIS":ww.task.map(roleName).join(", "))}${ww.via==="step"?" (from Process Step)":""}</small></span><span class="dt">${esc(dt)}</span></li>`}});
+  return{j,h:`<li class="${cls}"><span class="no" data-n="${n}" aria-hidden="true">${cls==="d"?ico("check"):cls==="x"?ico("x"):""}</span><span class="nm">${esc(x?.name||"")}<small>${esc(ww.via==="system"?"AIS":ww.task.map(roleName).join(", "))}${ww.via==="step"?" (from Process Step)":""}</small></span><span class="dt">${esc(dt)}</span></li>`}});
  const lo=Math.max(0,ci-2),hi=Math.min(p.length,ci+5);const vis=lis.filter(l=>l.j>=lo&&l.j<hi).map(l=>l.h).join("");
- const route=`<ol class="stepper" id="stp">${lo>0?`<li class="gapli" style="display:block">${lo} earlier step(s) complete</li>`:""}${vis}${hi<p.length?`<li class="gapli" style="display:block">${p.length-hi} more step(s) to the end</li>`:""}</ol>${p.length>hi-lo?`<button class="linkbtn" id="stpAll" style="margin-top:6px">Show all ${p.length} steps</button>`:""}`;
+ const route=`<ol class="stepper" id="stp">${lo>0?`<li class="gapli" style="display:block">${lo} earlier ${lo===1?"stage":"stages"} complete</li>`:""}${vis}${hi<p.length?`<li class="gapli" style="display:block">${p.length-hi} more ${p.length-hi===1?"stage":"stages"} to go</li>`:""}</ol>${p.length>hi-lo?`<button class="linkbtn" id="stpAll" style="margin-top:6px">Show all ${p.length} stages</button>`:""}`;
  const facts=r.module==="GP"?[["Sourcing type",st?`${st.code} ${st.name}`:r.sourcing],["Category",DB.category.find(c=>c.code===r.category)?.label||r.category],["Budget",money(r.amount,r.currency)],["EUR equivalent",r.budget_eur!=null?`EUR ${r.budget_eur.toLocaleString("en-IN")}${r.rate_id?` (rate ${r.rate_id})`:""}`:"Not converted"],["Budget band",r.band||(r.flow==="SCRAP"?"Bypassed (scrap)":"")],["Cost center",r.cost_center],["Initiator",uName(r.initiator)],["Created",fmtD(r.created)],["Globe no.",r.globe],["FSK reference",r.fsk_ref],["Shopping cart",r.sc]]
   :[["Tracking no.",r.no],["Shopping cart",r.sc],["Cart value",money(r.amount,"INR")],["NegBot phase",(()=>{const ph=phases().find(x=>inPhase(x,+r.amount));return ph?`Phase ${ph.phase}, min ${ph.min_offers} offers`:"Outside phase ranges"})()],["Created",fmtD(r.created)]];
  const hist=[...r.hist].reverse();
  openDrawer("case",drHead(`<b>${esc(r.no)}</b>${stChip(caseStatus(r))}`)+`<div class="dr-b"><h2 class="topic">${esc(r.topic)}</h2><p class="meta2">${esc(FLOW_LBL[r.flow]||r.flow)} flow in ${esc(ent?.name||r.entity)}, ${esc(r.module==="NegBot"?"Negotiation Bot":MODS.find(m=>m[0]===modOfCase(r))?.[1]||"GP Process")}</p>
  ${turn}${actBox}${nudgeBox}
- <div class="blk"><h3>Route</h3>${trackHTML(r)}<div style="height:12px"></div>${route}<p class="fine">Built from Process Step, Budget Band and Sourcing Type. Planned dates add each step's standard TAT on working days.</p></div>
+ <div class="blk"><h3>Route</h3>${route}<p class="fine">Built from Process Step, Budget Band and Sourcing Type. Planned dates add each step's standard TAT on working days.</p></div>
  <div class="blk"><h3>Details</h3><dl class="dl">${facts.map(([k,v])=>`<div><dt>${k}</dt><dd>${v?esc(v):'<span class="sub">Not yet</span>'}</dd></div>`).join("")}</dl></div>
- <div class="blk"><h3>History</h3><ul class="hist">${hist.map(h=>`<li><span class="when">${esc(fmtD(h.d))}<br>${esc(h.t||"")}</span><span><b>${esc(h.action)}</b>${h.step?` at step ${h.step}`:""}<br><span class="sub small">${esc(h.by)}${h.role?`, ${esc(roleName(h.role))}`:""}</span>${h.note?`<br>“${esc(h.note)}”`:""}</span></li>`).join("")}</ul></div>
+ <div class="blk"><h3>History</h3><ul class="hist">${hist.map(h=>`<li><span class="when">${esc(fmtD(h.d))}<br>${esc(h.t||"")}</span><span><b>${esc(h.action)}</b>${h.step?` <span class="stg-tag">${esc(stageName(h.step))}</span>`:""}<br><span class="sub small">${esc(h.by)}${h.role?`, ${esc(roleName(h.role))}`:""}</span>${h.note?`<br>“${esc(h.note)}”`:""}</span></li>`).join("")}</ul></div>
  <div class="blk"><h3>Why you see this request</h3><div class="why">${open?whyText(r,w):"Finished requests stay visible to the people who took part and to oversight roles."}${S.role==="ADMIN"?` <button class="linkbtn" id="toVis">Open Step Visibility</button>`:""}</div></div></div>`);
  const A=$("#doAct");if(A)A.onclick=()=>act(r._id,"act",$("#cmt").value.trim());
  const D=$("#doDec");if(D)D.onclick=()=>{const c=$("#cmt").value.trim();if(!c){$("#cmt").focus();$("#cmt").setAttribute("aria-invalid","true");toast("Add a comment to decline (US-042 AC1).");return}act(r._id,"decline",c)};
@@ -3623,14 +3741,14 @@ function riGridHTML(c){return`<div class="ri-main">${riS1HTML()}${riS2HTML(c)}${
 function riS1HTML(){const r=riCase();const u=RI.mode==="new"?me():DB.user.find(x=>x.sso===r?.initiator)||me();const chain=ancestors(u.org_unit);
  const dept=chain.find(o=>o.unit_type==="DEPARTMENT"),sec=chain.find(o=>o.unit_type==="SECTION"),wa=chain.find(o=>o.unit_type==="WORK_AREA");const cc=DB.costcenter.find(x=>x.entity===RI.ent&&x.code===u.cost_center);
  const kv=[["User ID",u.sso],["Email",u.email],["Department",dept?.unit_name],["Section / work area",[sec?.unit_name,wa?.unit_name].filter(Boolean).join(" / ")],["Cost center",u.cost_center],["Cost Center Head",uName(cc?.head_user)],["HOD",uName(u.manager)],["Entity",DB.entity.find(e=>e.code===RI.ent)?.name]];
- return`<section class="ri-sec lock" data-sec="s1"><header><span class="ri-no">Step 1</span><h2>Requester</h2><p>From your directory profile, read only (US-011). Your Cost Center Head approves at step 10.</p></header><dl class="dl">${kv.map(([k,v])=>`<div><dt>${k}</dt><dd>${v?esc(v):'<span class="sub">Not set</span>'}</dd></div>`).join("")}</dl></section>`}
+ return`<section class="ri-sec lock" data-sec="s1"><header><span class="ri-no"><i class="dotst" aria-hidden="true"></i></span><h2>Requester</h2><p>From your directory profile, read only (US-011). Your Cost Center Head approves next.</p></header><dl class="dl">${kv.map(([k,v])=>`<div><dt>${k}</dt><dd>${v?esc(v):'<span class="sub">Not set</span>'}</dd></div>`).join("")}</dl></section>`}
 
 function riS2HTML(c){
  if(c.locked){const kv=[["Topic",RI.topic],["Sourcing type",c.st?`${c.st.code} ${c.st.name}`:RI.st],["Category",DB.category.find(k=>k.code===RI.cat)?.label||RI.cat],["Budget",money(RI.amt,RI.cur)],["EUR equivalent",c.pr.eur!=null?eurTxt(c.pr.eur):""],["Flow",`${FLOW_LBL[c.flow]||c.flow}${c.band?`, band ${c.band.code}`:""}`]];
-  return`<section class="ri-sec lock" data-sec="s2"><header><span class="ri-no">Step 2</span><h2>Sourcing type, budget and category</h2><p>Set when the request was raised.</p></header><dl class="dl">${kv.map(([k,v])=>`<div><dt>${k}</dt><dd>${v?esc(v):'<span class="sub">Not set</span>'}</dd></div>`).join("")}</dl></section>`}
+  return`<section class="ri-sec lock" data-sec="s2"><header><span class="ri-no"><i class="dotst" aria-hidden="true"></i></span><h2>Sourcing type, budget and category</h2><p>Set when the request was raised.</p></header><dl class="dl">${kv.map(([k,v])=>`<div><dt>${k}</dt><dd>${v?esc(v):'<span class="sub">Not set</span>'}</dd></div>`).join("")}</dl></section>`}
  const sts=DB.sourcing.filter(s=>s._active&&s.entity===RI.ent);
  const hint=s=>s.scrap?"Scrap path at any value":s.inv_appr?"Needs the Investment approval (BZI / IIC)":s.fsk_check&&c.ent?.fsk_applicable?"FSK check when a forum rule matches":"No prerequisite";
- return`<section class="ri-sec" data-sec="s2"><header><span class="ri-no">Step 2</span><h2>Sourcing type, budget and category</h2><p>AIS converts the budget to EUR at the rate effective today and picks the flow.</p></header><div class="form">
+ return`<section class="ri-sec" data-sec="s2"><header><span class="ri-no"><i class="dotst" aria-hidden="true"></i></span><h2>Sourcing type, budget and category</h2><p>AIS converts the budget to EUR at the rate effective today and picks the flow.</p></header><div class="form">
  <label for="ri_topic">Topic<input data-k="topic" id="ri_topic" value="${esc(RI.topic)}" maxlength="200" placeholder="What are you buying?" autocomplete="off" ${fi(c,"topic")}></label>${fe(c,"topic")}
  <div><div class="ri-lab" id="ri_st_l">Sourcing type</div><div class="ri-opts" style="--n:${Math.min(sts.length||1,4)}" role="radiogroup" aria-labelledby="ri_st_l">${sts.map(s=>`<label class="ri-opt"><input type="radio" name="ri_st" id="${riId("st_"+s.code)}" data-k="st" value="${esc(s.code)}" ${RI.st===s.code?"checked":""}><span class="cd">${esc(s.code)}</span><b>${esc(s.name)}</b><span class="hn">${esc(hint(s))}</span></label>`).join("")}</div>${fe(c,"st")}</div>
  <div><div class="ri-lab" id="ri_cat_l">Category</div><div class="ri-opts cat" role="radiogroup" aria-labelledby="ri_cat_l">${DB.category.filter(k=>k._active).map(k=>{const ok=!c.st||c.cats.includes(k.code);return`<label class="ri-opt" ${ok?"":`title="Not allowed for ${esc(c.st?.name||"")} under the Routing Rules"`}><input type="radio" name="ri_cat" id="${riId("cat_"+k.code)}" data-k="cat" value="${esc(k.code)}" ${RI.cat===k.code?"checked":""} ${ok?"":"disabled"}><b>${esc(k.label)}</b>${k.notify_infosec?'<span class="hn">InfoSec is told when your Cost Center Head approves</span>':""}</label>`}).join("")}</div>${fe(c,"cat")}</div>
@@ -3647,13 +3765,13 @@ function riConvHTML(c){if(!(c.amt>0))return`<p class="fine" style="margin:0">Ent
  ${c.pr.eur!=null&&!c.st?.scrap&&RI.cur!=="EUR"&&hi?`<p class="fine">Routing compares the EUR value with the EUR ${(+hi.min_eur).toLocaleString("en-IN")} threshold at the rate effective on ${fmtD(today())}. The INR 50 Lacs text is a label only (G-01).</p>`:""}`}
 
 function riChoiceHTML(opts){return`<div class="ri-choice" role="radiogroup" aria-labelledby="ri_ch_l"><div class="ri-lab" id="ri_ch_l">How will you cover it?</div>${opts.map(([v,t,h])=>`<label class="ri-opt"><input type="radio" name="ri_choice" id="${riId("choice_"+v)}" data-k="choice" value="${v}" ${RI.choice===v?"checked":""}><b>${t}</b><span class="hn">${h}</span></label>`).join("")}</div>`}
-function riS3HTML(c){const head=(t,p,lock)=>`<section class="ri-sec${lock?" lock":""}" data-sec="s3"><header><span class="ri-no">Step 3</span><h2>${t}</h2><p>${p}</p></header>`;
+function riS3HTML(c){const head=(t,p,lock)=>`<section class="ri-sec${lock?" lock":""}" data-sec="s3"><header><span class="ri-no"><i class="dotst" aria-hidden="true"></i></span><h2>${t}</h2><p>${p}</p></header>`;
  const r=riCase();
  if(RI.mode==="rfq")return head("Prerequisite","Recorded when the request was raised.",1)+riPrereqDL(r)+`</section>`;
  if(!c.st)return head("Prerequisite","Depends on the sourcing type.",1)+`<p class="fine" style="margin:0">Choose a sourcing type first.</p></section>`;
- if(c.st.scrap)return head("Prerequisite","Scrap needs no Investment or FSK approval.",1)+`<div class="ri-res ok"><b>No prerequisite</b><p>Scrap follows steps 8 to 25, then the scrap contract at steps 28 and 29 (GP-S03).</p></div></section>`;
+ if(c.st.scrap)return head("Prerequisite","Scrap needs no Investment or FSK approval.",1)+`<div class="ri-res ok"><b>No prerequisite</b><p>Scrap follows the RFQ route, then the scrap contract (GP-S03).</p></div></section>`;
  if(c.ptype==="NONE")return head("Prerequisite","Depends on the sourcing type and entity.",1)+`<div class="ri-res ok"><b>No prerequisite</b><p>FSK is not applicable in ${esc(c.ent?.name||RI.ent)}, so ${esc(c.st.name)} needs no FSK reference (US-072 AC4).</p></div></section>`;
- if(c.ptype==="INV")return head("Investment approval","BZI approves EUR 50 to 20,000 and IIC above EUR 20,000. The approval is obtained offline before the request (step 4).")+riInvHTML(c)+`</section>`;
+ if(c.ptype==="INV")return head("Investment approval","BZI approves EUR 50 to 20,000 and IIC above EUR 20,000. The approval is obtained offline before the request.")+riInvHTML(c)+`</section>`;
  return head("FSK check","Services need an FSK reference only when a forum rule matches the service value (G-05).")+riFskHTML(c)+`</section>`}
 function riInvHTML(c){const v=RI.inv,e=RI.ent;const fora=DB.committee.filter(k=>k._active&&k.entity===e&&k.process==="Investment");let h=`<div class="form">`;
  if(RI.mode!=="fulfil")h+=riChoiceHTML([["provide","I have the Investment approval","Enter the WBS number and the approval details."],["exception","Proceed without it for now","The Head BA must approve an exception. SFO stays blocked until you record the approval."]])+fe(c,"choice");
@@ -3674,13 +3792,13 @@ function riFskHTML(c){const f=c.fsk;let h=`<div class="form">`;
   ${RI.fsk.dur==="Long-term"?`<label for="ri_fsk_years" style="max-width:260px">Contract term (years)<input id="ri_fsk_years" data-k="fsk.years" type="number" min="0" step="any" value="${esc(RI.fsk.years)}" ${fi(c,"fsk.years")}></label>${fe(c,"fsk.years")}`:""}`;
  h+=`<div id="riFsk" aria-live="polite">${riFskResHTML(c)}</div>`;
  if(c.ptype==="FSK"){
-  if(RI.mode!=="fulfil")h+=riChoiceHTML([["provide","I have an approved FSK reference","AIS checks it against the FSK Portal now. FSK steps 5 to 7 are then already done."],["portal","Take it to the FSK Portal first","The request runs FSK steps 5 to 7, then returns to you at step 8 for the RFQ package."],["exception","Proceed without it for now","The Head BA must approve an exception. SFO stays blocked until you record the FSK reference."]])+fe(c,"choice");
+  if(RI.mode!=="fulfil")h+=riChoiceHTML([["provide","I have an approved FSK reference","AIS checks it against the FSK Portal now. The FSK check is then already done."],["portal","Take it to the FSK Portal first","The request goes through the FSK check, then returns to you for the RFQ package."],["exception","Proceed without it for now","The Head BA must approve an exception. SFO stays blocked until you record the FSK reference."]])+fe(c,"choice");
   if(c.choice==="provide"){const ck=RI.fsk.check;const demo=DEMO.enabled?fskRegister(RI.ent).filter(z=>z.src==="portal"&&!z.linked).slice(0,3):[];
    h+=`<div class="ri-inl"><label for="ri_fsk_ref">FSK reference<input id="ri_fsk_ref" data-k="fsk.ref" value="${esc(RI.fsk.ref)}" placeholder="IN X ${today().slice(2,4)} 70" autocomplete="off" ${fi(c,"fsk.ref")}></label><button class="btn" data-ri="checkref">${ico("search")}Check in FSK Portal</button></div>
    ${ck?riRefResHTML(ck):fe(c,"fsk.ref")}
    ${demo.length?`<p class="ri-demo"><span class="proto">Prototype</span> Demo references: ${demo.map(z=>`<button class="linkbtn" data-ri="useref" data-ref="${esc(z.ref)}">${esc(z.ref)}</button> (${esc(lcLab(FSK_ST[z.status]||z.status))})`).join(", ")}</p>`:""}
    <div id="riInvWarn">${riWarnHTML(c)}</div><div id="riMatch">${riMatchHTML(c)}</div>`}
-  if(c.choice==="portal")h+=`<div class="ri-res info"><b>Through the FSK Portal</b><p>You submit the presentation at step 5, the FSK Coordinator puts it on the ${esc(f.pre?.name||"FSK Committee")} agenda and records the ${esc(f.com?.name||"")} decision (steps 6 and 7). AIS gives the request its FSK reference at step 6.</p></div>`;
+  if(c.choice==="portal")h+=`<div class="ri-res info"><b>Through the FSK Portal</b><p>You submit the presentation, the FSK Coordinator puts it on the ${esc(f.pre?.name||"FSK Committee")} agenda and records the ${esc(f.com?.name||"")} decision. AIS then gives the request its FSK reference.</p></div>`;
   if(c.choice==="exception")h+=riExcHTML(c,"NO_FSK_APPROVAL")}
  return h+`</div>`}
 function riFskResHTML(c){const f=c.fsk;if(!f)return"";
@@ -3705,13 +3823,13 @@ function riExcHTML(c,type){const r=riCase();const rej=r?.exc?.status==="REJECTED
 function riDropHTML(type,label,multi=true){return`<label class="ri-drop" data-drop="${type}">${ico("upload")}<b>${label}</b><span>Drop files here or choose them${multi?"; several are allowed":""}</span><input type="file" data-doc="${type}" ${multi?"multiple":""} aria-label="${esc(label)}"></label>`}
 function riDocsHTML(list,type){return list.length?`<ul class="ri-docs">${list.map(d=>`<li>${ico("doc")}<span class="nm">${esc(d.file_name)}<small>${kb(d.size)}, version ${d.version_no}${d.is_ai_generated?", AI-generated":""}</small></span><button type="button" class="iconbtn" data-ri="deldoc" data-type="${type}" data-id="${esc(d.id)}" aria-label="Remove ${esc(d.file_name)}">${ico("x")}</button></li>`).join("")}</ul>`:""}
 
-function riS9HTML(c){const lockSec=(no,t,p)=>`<section class="ri-sec lock" data-sec="s9"><header><span class="ri-no">${no}</span><h2>${t}</h2><p>${p}</p></header></section>`;
+function riS9HTML(c){const lockSec=(no,t,p)=>`<section class="ri-sec lock" data-sec="s9"><header><span class="ri-no"><i class="dotst" aria-hidden="true"></i></span><h2>${t}</h2><p>${p}</p></header></section>`;
  if(RI.mode==="fulfil")return"";
  if(!c.flow)return lockSec("Steps 8–9","RFQ package","Needed for High budget and Scrap requests. Enter the sourcing type and budget to see whether it applies.");
- if(c.flow==="LOW")return lockSec("Step 30","Low budget: no RFQ package here","After you submit, the request follows steps 30 to 36. You process the SFO with the offers and your K-SRM Shopping Cart at step 31.");
- if(c.fskSteps)return lockSec("Steps 8–9","RFQ package after the FSK approval","When step 7 closes, the request comes back to you at step 8 and you upload the RFQ package then.");
+ if(c.flow==="LOW")return lockSec("Step 30","Low budget: no RFQ package here","After you submit, the request follows the low-budget route. You process the SFO with the offers and your K-SRM Shopping Cart.");
+ if(c.fskSteps)return lockSec("Steps 8–9","RFQ package after the FSK approval","When the FSK check closes, the request comes back to you and you upload the RFQ package then.");
  const sugg=RI.rfq.sugg;const sups=DB.supplier.filter(s=>s._active);
- return`<section class="ri-sec" data-sec="s9"><header><span class="ri-no">Step 9</span><h2>RFQ package</h2><p>${c.flow==="SCRAP"?"Scrap requests follow steps 8 to 25.":"High budget processing starts at step 8."} Describe the requirement, upload the documents, or both.</p></header><div class="form">
+ return`<section class="ri-sec" data-sec="s9"><header><span class="ri-no"><i class="dotst" aria-hidden="true"></i></span><h2>RFQ package</h2><p>${c.flow==="SCRAP"?"Scrap requests follow the full RFQ route.":"High budget processing starts with the RFQ package."} Describe the requirement, upload the documents, or both.</p></header><div class="form">
   ${riDropHTML("RFQ_PACKAGE","Upload RFQ documents")}${riDocsHTML(RI.rfq.docs,"RFQ_PACKAGE")}
   <p class="fine" style="margin:0">Prototype: AIS keeps the file name, size and version. The file content stays on your device.</p>
   <label for="ri_rfq_text">Requirement${RI.rfq.ai?` <span class="ri-aitag">${ico("spark")}Contains AI-generated text</span>`:""}<textarea id="ri_rfq_text" data-k="rfq.text" rows="8" placeholder="Scope, specification, quantities, delivery and commercial terms" ${fi(c,"rfq")}>${esc(RI.rfq.text)}</textarea></label>${fe(c,"rfq")}
@@ -3722,7 +3840,7 @@ function riS9HTML(c){const lockSec=(no,t,p)=>`<section class="ri-sec lock" data-
    <p class="fine" style="margin:0">Generic structure: the SAVWIPL RFQ template has not been supplied yet (A-37). The AI service itself connects with EP-18.</p></div>`:""}
   ${RI.rfq.ai?`<label class="ri-tick"><input type="checkbox" id="ri_rfq_aiOk" data-k="rfq.aiOk" ${RI.rfq.aiOk?"checked":""} ${fi(c,"aiok")}> I have reviewed and edited the AI-generated text before submitting (US-091 AC3).</label>${fe(c,"aiok")}`:""}
  </div></section>
- <section class="ri-sec" data-sec="s9b"><header><span class="ri-no">Step 9</span><h2>Bidder proposal</h2><p>Suggest suppliers, with a short reason for each. Optional.</p></header>
+ <section class="ri-sec" data-sec="s9b"><header><span class="ri-no"><i class="dotst" aria-hidden="true"></i></span><h2>Bidder proposal</h2><p>Suggest suppliers, with a short reason for each. Optional.</p></header>
   <div class="ri-banner">${ico("alert")}<span>Procurement reserves the right to finalise the bidder list.</span></div>
   <div class="ri-bids">${RI.bidders.map((b,i)=>`<div class="ri-bid" data-bid="${i}"><div class="form" style="gap:8px"><label for="${riId(`bid.${i}.supplier_id`)}">Supplier ${i+1}<select id="${riId(`bid.${i}.supplier_id`)}" data-k="bid.${i}.supplier_id"><option value="">Not in the supplier master</option>${sups.map(s=>`<option value="${esc(s._id)}" ${b.supplier_id===s._id?"selected":""}>${esc(riSupName(s._id)||s._id)}</option>`).join("")}</select></label>
    ${b.supplier_id?"":`<label for="${riId(`bid.${i}.name`)}">Supplier name<input id="${riId(`bid.${i}.name`)}" data-k="bid.${i}.name" value="${esc(b.name)}" maxlength="160" autocomplete="off" ${fi(c,`bid.${i}.name`)}></label>`}${fe(c,`bid.${i}.name`)}</div>
@@ -3743,10 +3861,10 @@ function riAsideHTML(c){const r=riCase();const mock=RI.mode!=="new"&&r?r:{module
  else{const nx=RI.mode==="fulfil"?null:riNext(c);const cc=DB.costcenter.find(x=>x.entity===RI.ent&&x.code===(r?.cost_center||me().cost_center));
   const who=nx?nx.roles.map(rc=>rc==="CC_HEAD"&&cc?.head_user?uName(cc.head_user):roleHolders(rc,RI.ent).map(uName).join(", ")||roleName(rc)).filter(Boolean).join(", "):"";
   const tags=[];
-  if(c.path.includes(24))tags.push("Above EUR 250K the sourcing approval goes to a committee (step 24)");
-  if(c.fskSteps)tags.push(`Includes FSK steps 5 to 7${c.fsk?.com?.name?" ("+c.fsk.com.name+")":""}`);
-  else if(c.ptype==="FSK"&&c.choice==="provide")tags.push("FSK steps 5 to 7 are already done in the FSK Portal");
-  else if(c.ptype==="FSK"&&c.choice==="exception")tags.push("FSK steps 5 to 7 are skipped under the exception; SFO waits for the FSK reference");
+  if(c.path.includes(24))tags.push("Above EUR 250K the sourcing approval goes to a committee");
+  if(c.fskSteps)tags.push(`Includes the FSK check${c.fsk?.com?.name?" ("+c.fsk.com.name+")":""}`);
+  else if(c.ptype==="FSK"&&c.choice==="provide")tags.push("The FSK check is already done in the FSK Portal");
+  else if(c.ptype==="FSK"&&c.choice==="exception")tags.push("The FSK check is skipped under the exception; SFO waits for the FSK reference");
   const rg=[];c.path.forEach(n=>{const l=rg[rg.length-1];if(l&&n===l[1]+1)l[1]=n;else rg.push([n,n])});
   const PH=[[1,3,"Raise the request"],[5,7,"FSK check"],[8,10,"Intake and cost center approval"],[11,16,"BA review and RFQ"],[17,21,"Offers and negotiation"],[22,25,"Sourcing approval"],[26,29,"Contract and PO"],[30,33,"Low-budget sourcing"],[34,35,"Final approval"],[36,36,"Contract copy upload"]]
    .map(([x,y,l])=>({l,st:c.path.filter(n=>n>=x&&n<=y)})).filter(p=>p.st.length);
@@ -4130,7 +4248,7 @@ function p5Guard(r){if(!r||!p5Mine(r)){toast("This step is not on your Task List
  if(INC4.sfoSteps.includes(+r.step)&&sfoBlocked(r)){toast(sfoMsg(r));return false}return true}
 function p5Advance(r,action,note,msg){if(!p5Guard(r))return;p5H(r,action,note);moveNext(r);commit(msg||`${action}: ${r.no}`);p5After(r._id)}
 function p5After(id){const r=DB.req.find(x=>x._id===id);if(!r)return;
- const next=isOpen(r)?`${r.no} is now at step ${r.step}, with ${p5Who(r,r.step)}.`:r.status==="CLOSED"?`${r.no} is closed.`:`${r.no} is ${lcLab(ST_LABEL[r.status]||r.status)}.`;
+ const next=isOpen(r)?`${r.no} moved to ${stepRow(r.module,r.step)?.name||"the next stage"}, now with ${p5Who(r,r.step)}.`:r.status==="CLOSED"?`${r.no} is closed.`:`${r.no} is ${lcLab(ST_LABEL[r.status]||r.status)}.`;
  if(p5On(r)&&p5Mine(r)){WS=wsNew(r);renderShell();$("#work").scrollTop=0;toast(next+" The next step is yours too.")}
  else{const back=S.wsBack&&S.wsBack!=="gp"?S.wsBack:"tasks";S.ws=null;WS=null;go(back);toast(next)}}
 function openStep(id,mode=""){const r=DB.req.find(x=>x._id===id);if(!r)return;if(r.entity!==S.entity){toast("That request belongs to another entity.");return}
@@ -4175,11 +4293,11 @@ openCase=function(id){p5.openCase(id);const r=DB.req.find(x=>x._id===id);const d
  if(INC5.flows.includes(r.flow)&&isOpen(r)&&(INC5.steps.includes(+r.step)||q)){
   if(box&&w.task.includes(S.role)&&!p5Mine(r))box.outerHTML=`<div class="actbox"><div class="ri-res info"><b>Assigned to another Buyer</b><p>${esc(uName(p5Owner(r)))} holds this request. Buyer steps go to the assigned Buyer only.</p></div></div>`;
   else if(box&&p5Mine(r)){const t=q?"Answer the query":P5_TITLE[r.step];
-   box.outerHTML=`<div class="actbox">${q?`<div class="p5-q"><b>${esc(roleName(q.from_role))} asks</b><span>“${esc(q.text)}”</span></div>`:`<p style="margin:0;font-size:13.5px">${esc(P5_CTA[r.step])}</p>`}${INC4.sfoSteps.includes(+r.step)&&sfoBlocked(r)?`<div class="err-box" role="alert">${esc(sfoMsg(r))}</div>`:""}<div class="actrow"><button class="btn pri" id="p5Go">${ico(q?"help":"ff")}${q?"Answer the query":`Open step ${r.step}`}</button></div></div>`;
+   box.outerHTML=`<div class="actbox">${q?`<div class="p5-q"><b>${esc(roleName(q.from_role))} asks</b><span>“${esc(q.text)}”</span></div>`:`<p style="margin:0;font-size:13.5px">${esc(P5_CTA[r.step])}</p>`}${INC4.sfoSteps.includes(+r.step)&&sfoBlocked(r)?`<div class="err-box" role="alert">${esc(sfoMsg(r))}</div>`:""}<div class="actrow"><button class="btn pri" id="p5Go">${ico(q?"help":"ff")}${q?"Answer the query":"Open task"}</button></div></div>`;
    $("#p5Go").onclick=()=>openStep(r._id)}
   if(S.role==="BUYER"&&+r.step===18&&p5Owner(r)===S.user&&r.sfo&&!r.sfo.locked&&!q){$("#p5Blk")?.insertAdjacentHTML("beforeend",`<div class="actrow" style="margin-top:10px"><button class="btn" id="p5Sfo">${ico("edit")}Edit the SFO</button></div>`);$("#p5Sfo").onclick=()=>openStep(r._id,"sfo")}}
  // Revised plan dates on the route (A-43)
- const patch=()=>{if(!r.plan?.ms||!isOpen(r))return;const cur=p5Path(r).indexOf(+r.step);$$("#stp li").forEach(li=>{const n=+li.querySelector(".no")?.textContent;const i=p5Path(r).indexOf(n);if(i>cur&&r.plan.ms[n]){const dt=li.querySelector(".dt");if(dt){dt.textContent="Plan "+fmtD(r.plan.ms[n]);dt.title="Revised by the Section Head"}}})};
+ const patch=()=>{if(!r.plan?.ms||!isOpen(r))return;const cur=p5Path(r).indexOf(+r.step);$$("#stp li").forEach(li=>{const n=+li.querySelector(".no")?.dataset.n;const i=p5Path(r).indexOf(n);if(i>cur&&r.plan.ms[n]){const dt=li.querySelector(".dt");if(dt){dt.textContent="Plan "+fmtD(r.plan.ms[n]);dt.title="Revised by the Section Head"}}})};
  patch();const sa=$("#stpAll");if(sa){const f=sa.onclick;sa.onclick=()=>{f&&f();patch()}}};
 
 /* ---------- Prototype controls ---------- */
@@ -4216,7 +4334,7 @@ const wfi=k=>wErr(k)?`aria-invalid="true" aria-describedby="w_${k.replace(/\W/g,
 const wid=k=>"w_"+k.replace(/\W/g,"_");
 const wIn=(k,label,o={})=>{const v=getP(WS.f,k)??"";return`<label for="${wid(k)}">${label}${o.ta?`<textarea id="${wid(k)}" data-k="${k}" rows="${o.rows||3}" ${o.ph?`placeholder="${esc(o.ph)}"`:""} ${wfi(k)}>${esc(v)}</textarea>`:`<input id="${wid(k)}" data-k="${k}" type="${o.type||"text"}" value="${esc(v)}" ${o.ph?`placeholder="${esc(o.ph)}"`:""} ${o.min!=null?`min="${o.min}"`:""} ${o.max!=null?`max="${o.max}"`:""} ${o.rr?"data-rr":""} ${o.type==="number"?'step="any" inputmode="decimal"':""} autocomplete="off" ${wfi(k)}>`}</label>${wfe(k)}`};
 const wDrop=(k,label,hint)=>{const v=getP(WS.f,k);return`<label class="ri-drop" for="${wid(k)}"><input type="file" id="${wid(k)}" data-file="${k}">${ico("upload")}<b>${v?esc(v.file_name):esc(label)}</b><span>${v?`${kb(v.size)}, choose again to replace`:esc(hint||"PDF, Word, Excel or image")}</span></label>${wfe(k)}`};
-const wSec=(no,t,p,body,cls="")=>`<section class="ri-sec ${cls}"><header><span class="ri-no">${no}</span><h2>${t}</h2>${p?`<p>${p}</p>`:""}</header>${body}</section>`;
+const wSec=(no,t,p,body,cls="")=>`<section class="ri-sec ${cls}"><header><span class="ri-no">${stageChip(no)}</span><h2>${t}</h2>${p?`<p>${p}</p>`:""}</header>${body}</section>`;
 
 /* ---------- Step workspace: page ---------- */
 function wsHTML(r){const s=+r.step;const q=p5Q(r);const mode=WS.mode;
@@ -4333,7 +4451,7 @@ function wsAnswer(r,q){return wSec("Query",`${esc(roleName(q.from_role))} asks`,
 
 /* ---------- Aside: decision, next step, reminders ---------- */
 function p5NextCard(r,label,mock){const x=mock||r;const n=p5NextStep(x);const nm=n?stepRow("GP",n)?.name:"";
- return`<div class="route ri-route"><span class="rr">${label||"After this step"}</span><div class="fl">${n?`Step ${n}`:"Closed"}</div><span class="small">${n?`${esc(nm)}, with ${esc(+x.step===11&&!mock&&WS?.step===11?(WS.f.buyer?uName(WS.f.buyer):"the Buyer you assign"):p5Who(x,n))}`:"Copies distributed, request closed"}</span>${trackHTML(r)}</div>`}
+ return`<div class="route ri-route"><span class="rr">${label||"After this step"}</span><div class="fl">${n?esc(stageName(n)):"Closed"}</div><span class="small">${n?`${esc(nm)}, with ${esc(+x.step===11&&!mock&&WS?.step===11?(WS.f.buyer?uName(WS.f.buyer):"the Buyer you assign"):p5Who(x,n))}`:"Copies distributed, request closed"}</span>${trackHTML(r)}</div>`}
 function p5DecPanel(r){const c=P5_DEC[+r.step];const F=WS.f;if(!c)return"";const qs=c.q.filter(x=>x!==S.role&&roleHolders(x,r.entity).length);if(!F.qTo)F.qTo=qs[0]||"";
  const blocked=INC4.sfoSteps.includes(+r.step)&&sfoBlocked(r);
  let body;
@@ -4366,7 +4484,7 @@ function p5RemCard(r){const L=p5RulesHere(r);const since=p5Q(r)?.raised||r.enter
   ${DEMO.enabled?`<div class="p5-sim"><label class="fine" style="margin:0;display:grid;gap:4px" for="w_simN">Days<input id="w_simN" type="number" min="1" max="60" value="${WS.simN||3}" inputmode="numeric"></label><button class="btn" data-p5="sim">${ico("ff")}Simulate +N days</button></div>
   <p class="fine" style="margin:6px 0 0"><span class="proto">Prototype only</span> Moves the clock, runs the reminder scheduler day by day and keeps you on this screen.${WS.sim?` Last run ${esc(fmtD(WS.sim.from))} to ${esc(fmtD(WS.sim.to))}: ${plural(WS.sim.n,"reminder")} on this request.${esc(WS.sim.moved||"")}`:""}</p>`:""}</div>`}
 function p5Aside(r){return p5NextCard(r,+r.step===21?"After you submit":"",p5Mock(r))+(P5_DEC[+r.step]?p5DecPanel(r):p5ActPanel(r))+p5RemCard(r)}
-function p5AsideAnswer(r,q){return`<div class="route ri-route"><span class="rr">After you answer</span><div class="fl">Back to ${esc(roleName(q.from_role))}</div><span class="small">${esc(uName(q.from_user))} decides step ${q.step}</span>${trackHTML(r)}</div>
+function p5AsideAnswer(r,q){return`<div class="route ri-route"><span class="rr">After you answer</span><div class="fl">Back to ${esc(roleName(q.from_role))}</div><span class="small">${esc(uName(q.from_user))} decides</span>${trackHTML(r)}</div>
  <div class="panel p5-dec"><h3>Send your answer</h3>${WS.f.tried&&!WS.f.ans.trim()?`<div class="err-box" role="alert">Write an answer first.</div>`:""}<div class="actrow"><button class="btn pri big" data-p5="ans">${ico("send")}Send answer</button></div></div>`+p5RemCard(r)}
 function p5AsideSfoEdit(r){return`<div class="panel p5-dec"><h3>Save your changes</h3><p class="fine" style="margin:0">The Initiator has not signed yet, so you can still correct the SFO. AIS tells the Initiator a new version is ready.</p>${WS.f.tried&&WS.errs.length?`<div class="err-box" role="alert">${esc(WS.errs[0].msg)}</div>`:""}<div class="actrow"><button class="btn pri big" data-p5="sfo-edit">${ico("check")}Save as a new version</button><button class="btn" data-p5="close">Cancel</button></div></div>`}
 
@@ -5293,7 +5411,7 @@ function lbAside(r){const s=+r.step;const F=WS.f;const E=WS.errs;const err=F.tri
  else{const bb=F.dec==="query"?lbQueryPanel(r,"BUYER"):F.dec==="decline"?`${wIn("dText","Reason for declining",{ta:1,rows:3,ph:"The Initiator sees this reason"})}<div class="actrow"><button class="btn danger" data-p5="d-send">Decline the request</button><button class="btn" data-p5="dec-x">Cancel</button></div>`
   :`<label class="ri-tick"><input type="checkbox" id="w_tick" data-k="tick" data-rr ${F.tick?"checked":""} ${wfi("tick")}> I have checked the negotiated comparison</label>${wfe("tick")}${wIn("note","Comment (optional)",{ta:1,rows:2,ph:"Added to the history"})}${err}<div class="actrow">${lbBtn("l-34ok","Approve comparison","check")}<button class="btn" data-p5="dec-q">${ico("help")}Raise query</button><button class="btn danger" data-p5="dec-d">Decline</button></div>`;
   h=`<div class="panel p5-dec"><h3>Your decision</h3>${bb}</div>`}
- const next=s===34?`<div class="route ri-route"><span class="rr">After your approval</span><div class="fl">Step 34, PO entry</div><span class="small">${esc(uName(p5Owner(r)))} records the PO or FC and sends it for approval at step 35.</span>${trackHTML(r)}</div>`:p5NextCard(r,"");
+ const next=s===34?`<div class="route ri-route"><span class="rr">After your approval</span><div class="fl">PO entry</div><span class="small">${esc(uName(p5Owner(r)))} records the PO or FC and sends it for approval.</span>${trackHTML(r)}</div>`:p5NextCard(r,"");
  return next+h+p5RemCard(r)}
 
 /* ---------- Actions ---------- */
@@ -7309,7 +7427,7 @@ function rpBuild(pg,desc){const drb=pg.querySelector(".dr-b"),drh=pg.querySelect
  const intro=isF?blks.find(b=>!b.querySelector(":scope>h3")):null;if(intro){blks.splice(blks.indexOf(intro),1);const sc=intro.querySelector(".st");if(sc)chips.unshift(sc)}
  const facts=rpFacts(drb);let keys=[];
  if(r){const tm=isOpen(r)?timing(r):null,sr=stepRow(r.module,r.step);
-  if(isOpen(r)){keys.push(["Current step",`${r.step} \u00b7 ${sr?.name||""}`]);keys.push(["Due",tm?dueText(tm):"",tm&&tm.over?"bad":""])}
+  if(isOpen(r)){keys.push(["Stage",`${stageName(r.step)} \u00b7 ${sr?.name||""}`]);keys.push(["Due",tm?dueText(tm):"",tm&&tm.over?"bad":""])}
   ["Budget","EUR equivalent","Sourcing type","Initiator"].forEach(k=>{if(facts[k])keys.push([k,facts[k]])})}
  else if(isF){keys=["Required forum","Duration and value","Initiator","Cost center","Presenter / LEB"].filter(k=>facts[k]).map(k=>[k,facts[k]])}
  else{const pref=["Supplier","Value","Type","Start","End","Expiry window"];keys=pref.filter(k=>facts[k]).map(k=>[k,facts[k]]);if(keys.length<3)keys=Object.entries(facts).slice(0,5)}
@@ -7360,14 +7478,14 @@ moduleHTML=function(mod){const h=moduleHTML12(mod);if(mod!=="gp"||S.gpv||S.ws)re
  return`${head}<section class="lv" aria-label="GP requests">
   <div class="lv-h"><div class="lv-tabs" role="tablist"><button type="button" role="tab" data-gpl="tasks" aria-selected="${tab==="tasks"}">My tasks <span class="n">${T.length}</span></button><button type="button" role="tab" data-gpl="watching" aria-selected="${tab==="watching"}">${OVERSIGHT.includes(S.role)?"All open":"Watching"} <span class="n">${Q.length}</span></button></div>
   ${tab==="tasks"&&nOver?`<button type="button" class="chipb${S.gpo?" on":""}" data-gpo aria-pressed="${!!S.gpo}">Overdue <b>${nOver}</b></button>`:""}<label class="lv-search">${ico("search")}<input type="search" id="gpq" placeholder="Search this list" value="${esc(S.gpq)}" aria-label="Search this list"></label></div>
-  ${L.length?`<div class="lv-cols" aria-hidden="true"><span>Request</span><span>Workflow progress</span><span>Deadline</span></div><div class="rows" id="gpRows">${L.map(x=>rowHTML(x,tab==="tasks"?"T":"Q")).join("")}</div><div class="empty" id="gpNone" hidden><strong>No request matches</strong>Clear the search to see the whole list.</div>`
+  ${L.length?`<div id="gpRows">${tkTable(L,tab==="tasks"?"tasks":"queue",{})}</div><div class="empty" id="gpNone" hidden><strong>No request matches</strong>Clear the search to see the whole list.</div>`
    :`<div class="rows">${tab==="tasks"?emptyHTML("Nothing waiting for you in GP Process",""):emptyHTML("Not following anything here","","eye")}</div>`}
  </section>${disc}`};
 const renderBase12=renderBase;
 renderBase=function(){renderBase12();rpCenter();gpListify();if(S.module!=="gp"||S.gpv||S.ws)return;
  $$("#content [data-gpl]").forEach(b=>b.onclick=()=>{S.gpl=b.dataset.gpl;S.gpo=false;render()});
  $$("#content [data-gpo]").forEach(b=>b.onclick=()=>{S.gpo=!S.gpo;render()});
- const q=$("#gpq");if(q){const f=()=>{S.gpq=q.value;const t=q.value.trim().toLowerCase();let n=0;$$("#gpRows .row").forEach(r=>{const m=!t||r.textContent.toLowerCase().includes(t);r.hidden=!m;if(m)n++});const none=$("#gpNone");if(none)none.hidden=n>0};q.oninput=f;if(q.value)f()}};
+ const q=$("#gpq");if(q){const f=()=>{S.gpq=q.value;const t=q.value.trim().toLowerCase();let n=0;$$("#gpRows .tk-r").forEach(r=>{const m=!t||r.textContent.toLowerCase().includes(t);r.hidden=!m;if(m)n++});const none=$("#gpNone");if(none)none.hidden=n>0};q.oninput=f;if(q.value)f()}};
 /* step workspace: highlights header with the stage path replaces the one-line lead */
 const wsHTML2=wsHTML;
 wsHTML=function(r){const h=wsHTML2(r);if(r.module!=="GP")return h;
@@ -7662,7 +7780,7 @@ function rsSetup(pg,desc){if(!desc||desc.kind!=="case")return;const body=pg.quer
  const ul=hist&&hist.querySelector("ul.hist"),lis=ul?[...ul.children]:[];const fineR=route.querySelector(":scope>p.fine");
  const moreRoute=!!expHTML&&expHTML!==colHTML,moreHist=lis.length>3;
  const btns=[];const mk=(after,noun,total)=>{const b=document.createElement("button");b.type="button";b.className="linkbtn rs-more";b.dataset.noun=noun;b.dataset.total=total;after.insertAdjacentElement("afterend",b);btns.push(b);return b};
- if(moreRoute)mk(stp,"steps",routeTotal);const hb=moreHist?mk(ul,"entries",lis.length):null;
+ if(moreRoute)mk(stp,"stages",routeTotal);const hb=moreHist?mk(ul,"entries",lis.length):null;
  const label=()=>{const exp=!!RSX.exp[key];btns.forEach(b=>{b.textContent=exp?`Show fewer ${b.dataset.noun}`:`Show all ${b.dataset.total} ${b.dataset.noun}`;b.setAttribute("aria-expanded",String(exp))})};
  /* collapsed History shows as many entries as fit beside Route; the rest sit behind "Show all" */
  const fit=()=>{if(RSX.exp[key]||!hist||!ul)return;const rp=body.querySelector('[data-rppanel="route"]');const onRoute=body.classList.contains("rs-wide")&&rp&&!rp.hidden;
@@ -8223,6 +8341,9 @@ const whoAtDesk=whoAt;
 whoAt=function(r,step=r.step){
  const w=whoAtDesk(r,step);
  if(r&&r.module==="NegBot"&&r.desk&&isOpen(r)&&+step===+r.step){const live=c=>roleHolders(c,r.entity).length>0;return{task:["BUYER"].filter(live),queue:["BUYER","BUYER_SUPERVISOR"].filter(live),via:"nbbuyer",s:w.s,shared:false}}
+ /* The request of the Negotiation Desk: the Buyer follows the negotiation and answers when the Desk needs a person, so it is a Buyer task until the result is back. */
+ if(r&&r.module==="GP"&&r.status==="IN_NEGBOT"&&r.lb&&r.lb.neg&&r.lb.neg.event_id&&["IN_NEGOTIATION","ESCALATED"].includes(r.lb.neg.state)&&+step===+r.step&&(!w.task||!w.task.length)){
+  const live=c=>roleHolders(c,r.entity).length>0;return{...w,task:["BUYER"].filter(live),queue:(w.queue||[]).filter(c=>c!=="BUYER"),via:"nbbuyer"}}
  return w};
 
 /* The Negotiation Desk section on the request: step 33 workspace and the record page */
