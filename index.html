@@ -5606,7 +5606,7 @@ function ws32(r){const b=lbLastBatch(r.entity);return wSec("Step 32","Waiting fo
 function ws33(r){const x=r.lb?.elig;return wSec("Step 33","NegBot eligibility check",`Run by AIS when the comparison was prepared (US-149).`,lbEligHTML(x)+`<div class="actrow" style="margin-top:10px"><button class="btn" data-p5="l-elig">${ico("ff")}Run the check again</button></div>`)
  +wSec("Step 33","Comparison sheet",`Cart ${esc(r.sc)}. Enter the negotiated unit price per supplier and item; blank keeps the initial price.`,lbCmpTable(r,true)+`<div class="form" style="margin-top:12px"><div class="grid2"><label for="w_award">Recommended supplier<select id="w_award" data-k="award" data-rr ${wfi("award")}><option value="">Choose</option>${r.lb.cmp.sup.map(s=>`<option value="${s.id}" ${WS.f.award===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></label></div>${wfe("award")}${wIn("note","Note for the Section Head",{ta:1,rows:2,ph:"Optional"})}</div>`)}
 function ws34a(r){const cmp=r.lb?.cmp;const T0=lbTotals(cmp,false),T1=lbTotals(cmp,true);const aw=cmp.sup.find(s=>s.id===cmp.award);const nb=cmp.version_type==="BOT_NEGOTIATED";
- return wSec("Step 34",nb?"Comparison negotiated by the Negotiation Bot":"Comparison negotiated by the Buyer",`${nb?`Tracking no. ${esc(cmp.neg_case_id)}. `:`Sent by ${esc(uName(p5Owner(r)))}. `}Recommended: <b>${esc(aw?.name||"—")}</b>, ${esc(inr(T1[cmp.award]||0))} (initial ${esc(inr(T0[cmp.award]||0))}, saving ${esc(inr(Math.max(0,(T0[cmp.award]||0)-(T1[cmp.award]||0))))}).`,lbCmpTable(r,false)+(r.lb.note?`<p class="fine">Buyer's note: “${esc(r.lb.note)}”</p>`:""))
+ return wSec("Step 34",nb?"Comparison negotiated by the Negotiation Bot":"Comparison negotiated by the Buyer",esc(lbSummary(cmp)),lbCmpTable(r,false)+(r.lb.note?`<p class="fine">Buyer's note: “${esc(r.lb.note)}”</p>`:""))
  +(r.lb.elig?`<details class="disc"><summary>NegBot eligibility check</summary><div>${lbEligHTML(r.lb.elig)}</div></details>`:"")}
 Object.assign(P6_WS,{30:ws30,31:ws31,32:ws32,33:ws33,34:r=>lbIsLow(r)&&lbStage(r)!=="PO"?ws34a(r):ws26(r)});
 
@@ -5697,11 +5697,17 @@ p7.p5Do=p5Do;
 p5Do=function(a,b){const r=DB.req.find(x=>x._id===S.ws);
  if(r&&lbMine(r)){if(/^l-/.test(a))return lbDo(r,a,b);if(lbP6(r)){if(/^c-/.test(a))return p6Do(r,a,b);if(a==="d-send"&&+r.step===35)return p6Do(r,"c-decline",b)}}
  return p7.p5Do(a,b)};
+/* One plain sentence about a comparison: who is cheapest, at what price, and how far below the first price. */
+function lbSummary(cmp){const aw=cmp.sup.find(s=>s.id===cmp.award);if(!aw)return"No supplier is recommended yet.";
+ const T0=lbTotals(cmp,false),T1=lbTotals(cmp,true);const first=T0[aw.id]||0,now=T1[aw.id]||0;
+ if(cmp.version_type==="INITIAL"||!(now>0))return`${aw.name} has the lowest first price at ${inr(first)}.`;
+ const save=Math.max(0,first-now);
+ return save>0?`${aw.name} agreed at ${inr(now)}, ${inr(save)} (${(save/first*100).toFixed(1)}%) below the first price of ${inr(first)}.`:`${aw.name} stayed at ${inr(now)}, the same as the first price.`}
 p7.p5RecordRows=p5RecordRows;
 p5RecordRows=function(r){const L=p7.p5RecordRows(r);if(!lbIsLow(r))return L;const c=lbCart(r.entity,r.sc);const cmp=r.lb?.cmp;
  if(r.sc)L.unshift(["Shopping Cart",`${r.sc}${c?`, ${c.sc_status}, ${money(c.value_in_currency,c.currency)}, batch ${c.upload_batch_id}`:", not in the latest upload"}`]);
  if(r.lb?.offers?.length)L.push(["Offers",r.lb.offers.map(o=>o.name).join(", ")]);
- if(cmp){const T=lbTotals(cmp,cmp.version_type!=="INITIAL");const aw=cmp.sup.find(s=>s.id===cmp.award);L.push(["Comparison",`${cmp.comparison_id}, ${lcLab({INITIAL:"Initial",BUYER_NEGOTIATED:"Negotiated by the Buyer",BOT_NEGOTIATED:"Negotiated by the bot",FINAL:"Final, approved"}[cmp.version_type])}${aw?`, ${aw.name} ${inr(T[cmp.award])}`:""}`])}
+ if(cmp)L.push(["Comparison",lbSummary(cmp)]);
  if(r.lb?.elig)L.push(["NegBot check",r.lb.elig.verdict]);return L};
 // Case drawer: NegBot link and the prototype 'run the bot' control on both sides of the hand-off
 p7.openCase=openCase;
@@ -8457,7 +8463,7 @@ const NegDesk=(()=>{
   if(N.sync_error&&N.state!=="ERROR")msg+=`<p class="fine">Last refresh failed: ${esc(N.sync_error)}</p>`;
   const can=access(S.role,S.entity).mods.some(m=>m[0]==="nb");
   return`<div class="ndbox"><p style="margin:0 0 8px"><span class="chip ${c[0]}">${esc(c[1])}</span> ${N.round?`<span class="fine">Round ${esc(N.round)}</span>`:""}</p>
-   ${row("Event",N.event_id)}${row("Case reference",N.external_ref)}${row("Sent",N.sent_at?N.sent_at+" (a snapshot of the comparison at that time)":"")}${row("Files sent",N.docs_total?`${N.docs_sent||0} of ${N.docs_total}`:"")}${row("Last refreshed",N.last_sync)}${N.state==="AGREED"?row("Deal approval in the Desk",N.desk_approved?"Approved "+N.desk_approved:"Waits for the Section Head's approval at step 34"):""}${N.approve_err?`<p class="fine" style="color:var(--err,#b3261e)">The Desk could not approve the deal: ${esc(N.approve_err)}</p>`:""}${msg}${resultHTML(N)}${contractHTML(r,N)}${N.docs_error&&N.state!=="ERROR"?`<p class="fine">Some files were not sent: ${esc(N.docs_error)}</p>`:""}
+   ${N.approve_err?`<p class="fine" style="color:var(--err,#b3261e)">The Desk could not approve the deal: ${esc(N.approve_err)}</p>`:""}${msg}${resultHTML(N)}${contractHTML(r,N)}${N.docs_error&&N.state!=="ERROR"?`<p class="fine">Some files were not sent: ${esc(N.docs_error)}</p>`:""}
    <div class="actrow" style="margin-top:10px">${N.event_id&&can?`<button class="btn pri" type="button" data-negdesk="open" data-id="${esc(r._id)}">${ico("nb")}Open event in the Negotiation Desk</button>`:""}
    ${N.event_id&&N.state==="IN_NEGOTIATION"&&can&&(N.sessions||[]).length?`${N.result&&N.result.messages&&N.result.messages.length?`<button class="btn" type="button" data-negdesk="conv" data-id="${esc(r._id)}">${ico("chat")}Open the conversation</button>`:""}<button class="btn" type="button" data-negdesk="run" data-id="${esc(r._id)}">${ico("ff")}Run the bot now (prototype)</button>`:""}
    ${N.event_id&&N.state!=="SENDING"?`<button class="btn" type="button" data-negdesk="refresh" data-id="${esc(r._id)}">${ico("ff")}Refresh status</button>`:""}
