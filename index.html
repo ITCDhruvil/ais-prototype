@@ -5514,9 +5514,11 @@ function supCombo(F,i,o,sups){
   <button type="button" class="scd-btn" ${wfi(`off.${i}.sup`)} id="${wid(`off.${i}.sup`)}" data-sup="toggle" data-i="${i}" aria-haspopup="listbox" aria-expanded="${open}" aria-labelledby="sup_l${i} ${wid(`off.${i}.sup`)}">${sel?`<b>${esc(sel.vendor_no||"")}</b> <span>${esc(sel.supplier_name)}</span>`:`<span class="scd-ph">Select a supplier</span>`}<i aria-hidden="true">${open?"&#9652;":"&#9662;"}</i></button>
   ${open?`<div class="scd-pop scd-float"><input id="sup_q" class="scd-q" type="search" placeholder="Search by supplier name or SAP number" autocomplete="off" aria-label="Search suppliers">
    <ul class="scd-list" role="listbox" aria-label="Suppliers">${rows||'<li class="scd-none">No supplier available.</li>'}<li class="scd-none" id="sup_none" hidden>No supplier matches your search.</li></ul>
-   <p class="fine" style="margin:8px 0 0">${sups.length} suppliers from the Negotiation Desk.</p></div>`:""}</div>`}
+   ${sups.some(x=>x.desk_id)?`<p class="fine" style="margin:8px 0 0">${sups.length} suppliers from the Negotiation Desk.</p>`:`<p class="fine" style="margin:8px 0 0">These are demo suppliers. The Negotiation Desk has not answered yet, it may be waking up (up to a minute). <button type="button" class="linkbtn" data-suprety="1">Try again</button></p>`}</div>`:""}</div>`}
 document.addEventListener("click",e=>{
  if(typeof WS==="undefined"||!WS)return;
+ const rt=e.target.closest("[data-suprety]");
+ if(rt){e.preventDefault();e.stopImmediatePropagation();rt.textContent="Trying...";NegDesk.syncVendors(true).then(()=>{try{wsPaint()}catch(x){}});return}
  const t=e.target.closest("[data-sup]");
  if(t){e.preventDefault();const i=+t.dataset.i;SUPD.open=SUPD.open===i?-1:i;wsPaint();if(SUPD.open>=0){const q=document.getElementById("sup_q");if(q)q.focus()}return}
  const p=e.target.closest("[data-suppick]");
@@ -7432,7 +7434,7 @@ wsNew=function(r,mode=""){const W=wsNewDesk(r,mode);
  return W};
 const ws31Desk=P6_WS[31];
 P6_WS[31]=function(r){
- if(NegDesk.active()&&!(DB.supplier||[]).some(x=>x.desk_id)){const id=r._id;NegDesk.syncVendors().then(ok=>{if(ok&&S.ws===id&&+r.step===31)try{wsPaint()}catch(e){}})}
+ if(NegDesk.active()&&!(DB.supplier||[]).some(x=>x.desk_id)){const id=r._id;const tryV=n=>NegDesk.syncVendors(true).then(ok=>{if(S.ws===id&&+r.step===31){if(ok)try{wsPaint()}catch(e){}else if(n>0)setTimeout(()=>tryV(n-1),12000)}});tryV(5)}
  return ws31Desk(r)};
 const ws34Desk=P6_WS[34];
 P6_WS[34]=function(r){const base=ws34Desk(r);if(!(r.lb&&r.lb.neg&&r.lb.neg.result))return base;return wSec("Step 34","Negotiation Desk result","What the Negotiation Desk agreed, with the conversation.",NegDesk.holder(r))+base};
