@@ -172,8 +172,10 @@ th[data-regsort][aria-sort="descending"]::after{content:" \25BC"}
 @media (max-width:900px){.fk-kpi:not(.nb-fun):has(>:nth-child(5):last-child){grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:560px){.fk-kpi:not(.nb-fun):has(>:nth-child(n+5)){grid-template-columns:repeat(2,minmax(0,1fr))}}
 .seg.fk-tabs{max-width:100%;overflow-x:auto;scrollbar-width:none}.seg.fk-tabs::-webkit-scrollbar{display:none}.seg.fk-tabs .btn{flex:none;white-space:nowrap}
-.crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;font-size:12.5px;color:var(--muted);margin:0 0 var(--sp-2)}
-.crumbs button{border:0;background:none;padding:0;color:var(--muted);font:inherit}
+.crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;font-size:13px;color:var(--muted);margin:0 0 var(--sp-2)}
+.crumbs button{border:0;background:none;padding:2px 3px;margin:-2px -3px;border-radius:5px;color:var(--muted);font:inherit;cursor:pointer}
+.crumbs button:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.pg-bar{margin:0 0 12px!important}
 .crumbs button:hover{color:var(--brand);text-decoration:underline}
 .crumbs [aria-current]{color:var(--ink);font-weight:600}
 .crumbs i{font-style:normal;color:var(--line)}
@@ -1236,6 +1238,12 @@ label.ri-tick input{margin-top:3px;flex:none}
 .chipb.on{background:var(--red-soft);border-color:var(--red);color:var(--red)}
 .rp-watch[aria-pressed="true"]{background:var(--brand-soft);border-color:var(--brand);color:var(--brand)}
 .rp-watch svg.i{width:16px;height:16px}
+.rp-hl-a{flex-direction:column;flex-wrap:nowrap;align-items:flex-end;gap:6px;max-width:none}
+.rp-hl-a .btn{width:38px;height:38px;min-width:0;padding:0;display:inline-grid;place-items:center;border-radius:10px;position:relative}
+.rp-hl-a .btn svg.i{width:18px;height:18px}
+.rp-hl-a .btn>span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.rp-hl-a .rp-watch[aria-pressed="true"] svg.i{color:var(--brand)}
+@media (max-width:1100px){.rp-hl-a{flex-direction:row;align-items:center}}
 
 /* Your route drawer, stacked statuses, Home KPI active state */
 .stk{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
@@ -2392,7 +2400,7 @@ const MOD_ICO={gp:"gp",fsk:"fsk",nb:"nb",rep:"rep",admin:"admin"};
 const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const subWork=(e,s,n)=>{let g=0;while(n>0&&g++<400){s=addD(s,-1);if(isWork(e,s))n--}return s};
 const wdBetween=(e,a,b)=>{let n=0,d=a,g=0;while(d<b&&g++<500){d=addD(d,1);if(isWork(e,d))n++}return n};
-const fmtD=s=>{if(!s)return"";const[y,m,d]=s.split("-");return`${+d} ${MON[+m-1]}${y!==today().slice(0,4)?" "+y:""}`};
+const fmtD=s=>{if(!s)return"";const[y,m,d]=s.split("-");return`${+d} ${MON[+m-1]} ${y}`};
 const relD=s=>{const t=today();if(s===t)return"today";if(s===addD(t,-1))return"yesterday";if(s===addD(t,1))return"tomorrow";return`${wdOf(s)} ${fmtD(s)}`};
 const nowTime=()=>{const d=new Date();return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
 const money=(v,c)=>`${c} ${Math.round(+v||0).toLocaleString("en-IN")}`;
@@ -2708,7 +2716,11 @@ const TK_RIGHT='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stro
 /* A task is New until its owner opens it: it arrived today and this role has not looked at it at this step yet. */
 let SEEN={};try{SEEN=JSON.parse(localStorage.getItem("ais.seen")||"{}")}catch(e){}
 const seenK=r=>S.user+"|"+S.role+"|"+r._id+"|"+r._arrKey;
-const isNewTask=(r,eff)=>!!eff&&r.status!=="DRAFT"&&!!r._arrKey&&!SEEN[seenK(r)];
+/* Only the latest arrival can be New: the task that reached this role most recently. Older unopened ones fall back to their due bucket. */
+const arrAt=r=>{const h=(r.hist||[]).slice(-1)[0];return(r.entered||"")+"|"+(h&&h.t||"")};
+let NNEW={I:null,id:null};
+const newestId=()=>{const I=items();if(NNEW.I!==I){let b=null,bk="";I.T.forEach(x=>{if(x.r.status==="DRAFT"||!x.r._arrKey||!tkAction(x.r,x.w).eff)return;const k=arrAt(x.r);if(!b||k>=bk){b=x.r;bk=k}});NNEW={I,id:b?b._id:null}}return NNEW.id};
+const isNewTask=(r,eff)=>!!eff&&r.status!=="DRAFT"&&!!r._arrKey&&!SEEN[seenK(r)]&&r._id===newestId();
 /* Every save stamps a request whose step, stage or status just changed: whoever holds it next sees it as New. */
 const arrSig=r=>[r.step,r.lb&&r.lb.stage||"",r.status||""].join("|");
 const ARR={};(DB.req||[]).forEach(r=>ARR[r._id]=arrSig(r));
@@ -4546,7 +4558,8 @@ const wfi=k=>wErr(k)?`aria-invalid="true" aria-describedby="w_${k.replace(/\W/g,
 const wid=k=>"w_"+k.replace(/\W/g,"_");
 const wIn=(k,label,o={})=>{const v=getP(WS.f,k)??"";return`<label for="${wid(k)}">${label}${o.ta?`<textarea id="${wid(k)}" data-k="${k}" rows="${o.rows||3}" ${o.ph?`placeholder="${esc(o.ph)}"`:""} ${wfi(k)}>${esc(v)}</textarea>`:`<input id="${wid(k)}" data-k="${k}" type="${o.type||"text"}" value="${esc(v)}" ${o.ph?`placeholder="${esc(o.ph)}"`:""} ${o.min!=null?`min="${o.min}"`:""} ${o.max!=null?`max="${o.max}"`:""} ${o.rr?"data-rr":""} ${o.type==="number"?'step="any" inputmode="decimal"':""} autocomplete="off" ${wfi(k)}>`}</label>${wfe(k)}`};
 const wDrop=(k,label,hint)=>{const v=getP(WS.f,k);return`<label class="ri-drop" for="${wid(k)}"><input type="file" id="${wid(k)}" data-file="${k}">${ico("upload")}<b>${v?esc(v.file_name):esc(label)}</b><span>${v?`${kb(v.size)}, choose again to replace`:esc(hint||"PDF, Word, Excel or image")}</span></label>${wfe(k)}`};
-const wSec=(no,t,p,body,cls="")=>`<section class="ri-sec ${cls}"><header><span class="ri-no">${stageChip(no)}</span><h2>${t}</h2>${p?`<p>${p}</p>`:""}</header>${body}</section>`;
+const wLink=(id,t)=>`<a href="#${id}" class="ws-jump" data-jump="${id}">${t}</a>`;
+const wSec=(no,t,p,body,cls="",id="")=>`<section${id?` id="${id}"`:""} class="ri-sec ${cls}"><header><span class="ri-no">${stageChip(no)}</span><h2>${t}</h2>${p?`<p>${p}</p>`:""}</header>${body}</section>`;
 
 /* ---------- Step workspace: page ---------- */
 function wsHTML(r){const s=+r.step;const q=p5Q(r);const mode=WS.mode;
@@ -5044,30 +5057,45 @@ function ws26(r){const F=WS.f;const s=+r.step;const scrap=r.flow==="SCRAP";const
   ${wIn("note","Comment for the history",{ta:1,rows:2,ph:k.over?"Required: why is the value above the negotiated value?":"Optional"})}</div>`)}
 
 /* ---------- Step 27 / 29: value-based approval, or the tick on behalf ---------- */
-function p6Facts(r,c,s){const neg=p6NegInr(r);return wSec(`Step ${s}`,esc(p6Lab(c)),`Recorded by ${esc(uName(c.recorded_by))} on ${esc(fmtD(c.submitted||c.recorded_at))}${c.version>1?`, version ${c.version}`:""}.`,`<div class="ri-conv">${[
+function p6Facts(r,c,s){const neg=p6NegInr(r);return wSec(`Step ${s}`,esc(p6Lab(c)),`Recorded by ${esc(uName(c.recorded_by))} on ${esc(fmtD(c.submitted||c.recorded_at))}${c.version>1?`, version ${c.version}`:""}.${INC6.appr.includes(+s)?` Go to the ${wLink("ws-po","document details")} or the ${wLink("ws-chain","approval chain")}.`:""}`,`<div class="ri-conv">${[
   ["Supplier",c.supplier_name],["Value",inr(c.value_inr),c.currency!=="INR"?money(c.value,c.currency):""],["Approval band",p6Band(r,c.value_inr)],[c.contract_type==="PO"?"PO date":"Start",fmtD(c.start_date)],[c.contract_type==="PO"?"Delivery":"End",fmtD(c.contract_type==="PO"?c.delivery_date:c.end_date)],
   ["Negotiated in sourcing",neg?inr(neg):"—"],["Globe no.",r.globe||"—"],["Sourcing approved",r.globeOk?`${fmtD(r.globeOk.d)}, ${uName(r.globeOk.by)}`:"—"]].map(([a,b,sm])=>`<div><div class="k">${a}</div><div class="v">${esc(b||"—")}${sm?`<small>${esc(sm)}</small>`:""}</div></div>`).join("")}</div>
   ${neg&&c.value_inr>neg?`<div class="ri-res warn" style="margin-top:12px"><b>Above the negotiated value by ${esc(inr(c.value_inr-neg))}</b><p>Buyer's comment: “${esc(c.note||"")}”</p></div>`:""}`)}
+/* PO / FC details for the approver: pulled from the Buyer's record, the Shopping Cart, the SFO, the negotiation and the supplier master. */
+function p6PoDetails(r,c,s){
+ const sup=DB.supplier.find(x=>x._id===c.supplier_id)||{};const f=r.sfo?.f||{};const isPO=c.contract_type==="PO";
+ const cart=typeof lbCart==="function"&&r.sc?lbCart(r.entity,r.sc):null;const neg=p6NegInr(r);
+ const bud=r.value_inr!=null?+r.value_inr:(r.currency==="INR"?+r.amount:null);const dif=bud!=null&&c.value_inr!=null?c.value_inr-bud:null;
+ const kv=L=>`<dl class="dl">${L.map(([k,v,sm])=>`<div><dt>${esc(k)}</dt><dd>${v?esc(v):'<span class="sub">Not recorded</span>'}${sm?`<span class="dd-sub">${esc(sm)}</span>`:""}</dd></div>`).join("")}</dl>`;
+ const lab=t=>`<div class="blk-l">${esc(t)}</div>`;
+ const docSup=lab("Document and supplier")+kv([[`${p6TypeLab(c.contract_type)} number`,c.contract_number],["Recorded by",`${uName(c.recorded_by)}, ${fmtD(c.recorded_at)}`,c.version>1?`Version ${c.version}`:""],["Supplier",c.supplier_name],["Vendor no.",sup.vendor_no||"",sup.vendor_no?"":"Not in the supplier master yet"],["Supplier email",sup.email],["Region",sup.region]]);
+ const val=lab("Value and terms")+kv([["Order value",inr(c.value_inr),c.currency!=="INR"?money(c.value,c.currency):""],["Request budget",bud!=null?inr(bud):"",dif==null?"":dif>0?`Order is ${inr(dif)} above the budget`:dif<0?`Order is ${inr(-dif)} below the budget`:"Order equals the budget"],["Negotiated in sourcing",neg?inr(neg):""],["Payment terms",f.payment],["Warranty",f.warranty],["Offer validity",f.validity],["Scope",f.scope||r.topic]]);
+ const dts=lab("Dates")+kv([[isPO?"PO date":"Start",fmtD(c.start_date)],[isPO?"Delivery date":"End",fmtD(isPO?c.delivery_date:c.end_date)],["Delivery in the SFO",f.delivery?fmtD(f.delivery):""],["Sourcing approved in Globe",r.globeOk?fmtD(r.globeOk.d):"",r.globe||""]]);
+ const pos=cart&&cart.positions&&cart.positions.length?`<div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Pos.</th><th>Description</th><th>Qty</th><th>Unit</th><th>Value</th></tr></thead><tbody>${cart.positions.map(q=>`<tr><td>${esc(q.sc_pos)}</td><td>${esc(q.description)}</td><td>${esc(q.qty)}</td><td>${esc(q.unit)}</td><td>${esc(money(q.value_cur,cart.currency))}</td></tr>`).join("")}</tbody></table></div>`:"";
+ const crt=lab("Shopping cart")+(r.sc?kv([["Shopping cart",r.sc,cart?(/^approved$/i.test(cart.sc_status||"")&&cart.approval_date?`Approved ${fmtD(cart.approval_date)}`:cart.sc_status||""):"Not in the latest open-cart upload"],["Cost center",r.cost_center],["Purchasing group and org.",cart?`${cart.purchasing_group||""} / ${cart.purchasing_org||""}`:""],["Product category (eCl@ss)",cart?.eclass_category]])+pos:`<p class="fine" style="margin:0">No Shopping Cart is linked to this request.</p>`);
+ const offs=(r.offers||[]).filter(o=>+o.amount>0);const nv=r.neg?.items||{};
+ const ofr=offs.length?lab("Offers received")+`<div class="tablewrap"><table><thead><tr><th>Supplier</th><th>Offer</th><th>After negotiation</th><th></th></tr></thead><tbody>${offs.map(o=>`<tr><td>${esc(o.name)}</td><td>${esc(money(o.amount,o.currency))}</td><td>${nv[o.id]!=null?esc(money(nv[o.id],r.neg.currency||o.currency)):"—"}</td><td>${o.id===r.neg?.award?'<span class="chip ok">Awarded</span>':""}</td></tr>`).join("")}</tbody></table></div>`:"";
+ return wSec(`Step ${s}`,`${p6TypeLab(c.contract_type)} details`,`Pulled from the Buyer's record, the Shopping Cart, the SFO, the negotiation and the supplier master. Check them before you approve.`,docSup+val+dts+crt+ofr,"","ws-po")}
 function ws27(r){const s=+r.step;const c=p6Ctr(r);if(!c||c.status==="RECORDED")return wSec(`Step ${s}`,"No contract sent for approval","The Buyer records it at the previous step first.","");const F=WS.f;const t=p6Cur(c);
- const chain=wSec(`Step ${s}`,"Approval chain",`${esc(OBJ[p6Obj(r)])}, ${esc(inr(c.value_inr))}, from the Approval Matrix. Each task opens only after the previous one is approved.`,p6ChainHTML(r,c));
+ const chain=wSec(`Step ${s}`,"Approval chain",`${esc(OBJ[p6Obj(r)])}, ${esc(inr(c.value_inr))}, from the Approval Matrix. Each task opens only after the previous one is approved.`,p6ChainHTML(r,c),"","ws-chain");
  if(t?.is_proxy_tick){const Q=p6ProxyQueue(r,c);
-  return p6Facts(r,c,s)+wSec(`Step ${s}`,"Record on behalf",`${esc(Q.map(p=>roleName(p.role)).join(" and "))} approve${Q.length>1?"":"s"} offline. Tick each approval you hold with its date and evidence. The chain shows it as “Recorded by the Buyer on behalf of”.`,Q.map((p,i)=>{const e=F.px[p.role]||{};return`<div class="p6-px">
+  return p6Facts(r,c,s)+p6PoDetails(r,c,s)+wSec(`Step ${s}`,"Record on behalf",`${esc(Q.map(p=>roleName(p.role)).join(" and "))} approve${Q.length>1?"":"s"} offline. Tick each approval you hold with its date and evidence. The chain shows it as “Recorded by the Buyer on behalf of”.`,Q.map((p,i)=>{const e=F.px[p.role]||{};return`<div class="p6-px">
    <label class="ri-tick"><input type="checkbox" id="${wid(`px.${p.role}.tick`)}" data-k="px.${p.role}.tick" data-rr ${e.tick?"checked":""} ${wfi(`px.${p.role}.tick`)}> <span><b>${esc(roleName(p.role))} approved ${esc(p6Lab(c))}</b><small class="sub" style="display:block">${i?`After ${esc(roleName(Q[i-1].role))} in the chain`:"Next in the chain"}${p.mandatory?"":", optional approval you ticked when recording"}</small></span></label>${wfe(`px.${p.role}.tick`)}
    ${e.tick?`<div class="grid2">${wIn(`px.${p.role}.date`,"Approved on",{type:"date",max:today()})}${wIn(`px.${p.role}.note`,"Note (optional)",{ph:"For example: approved by email"})}</div>${wDrop(`px.${p.role}.doc`,`Upload the evidence of the ${roleName(p.role)} approval`,"Required: approval email, signed note or minutes")}`:""}</div>`}).join(""))+chain}
  const B=p6Bulk(r);
- return p6Facts(r,c,s)+chain+(B.length?wSec("Tick and save","Other contracts waiting for you","Tick them to approve together with this one.",`<ul class="p5-bulk">${B.map(x=>{const k=p6Ctr(x);return`<li><label class="ri-tick"><input type="checkbox" data-k="bulk.${x._id}" ${F.bulk[x._id]?"checked":""}><span><b>${esc(x.no)}</b> ${esc(x.topic)}<small class="sub" style="display:block">${esc(p6Lab(k))}, ${esc(inr(k.value_inr))}</small></span></label></li>`}).join("")}</ul>`):"")}
+ return p6Facts(r,c,s)+p6PoDetails(r,c,s)+chain+(B.length?wSec("Tick and save","Other contracts waiting for you","Tick them to approve together with this one.",`<ul class="p5-bulk">${B.map(x=>{const k=p6Ctr(x);return`<li><label class="ri-tick"><input type="checkbox" data-k="bulk.${x._id}" ${F.bulk[x._id]?"checked":""}><span><b>${esc(x.no)}</b> ${esc(x.topic)}<small class="sub" style="display:block">${esc(p6Lab(k))}, ${esc(inr(k.value_inr))}</small></span></label></li>`}).join("")}</ul>`):"")}
 const p6Bulk=r=>DB.req.filter(x=>x!==r&&x.entity===r.entity&&isOpen(x)&&+x.step===+r.step&&!p5Q(x)&&p5Mine(x)&&p6Ctr(x)&&p6Cur(p6Ctr(x))&&!p6Cur(p6Ctr(x)).is_proxy_tick);
 
 /* ---------- Step 36: copy upload and distribution (US-135) ---------- */
 function ws36c(r){const c=p6Ctr(r);const F=WS.f;const sup=DB.supplier.find(x=>x._id===c.supplier_id);const dt=p6DocType(c.contract_type);
- return wSec("Step 36","Approved contract",`${esc(p6Lab(c))}, approved ${esc(fmtD(c.approved||""))}. The details below come from the record at step ${c.step_rec}.`,`<div class="ri-conv">${[["Document",p6Lab(c)],["Supplier",c.supplier_name],["Value",inr(c.value_inr)],[c.contract_type==="PO"?"PO date":"Start",fmtD(c.start_date)],[c.contract_type==="PO"?"Delivery":"End",fmtD(c.contract_type==="PO"?c.delivery_date:c.end_date)]].map(([a,b])=>`<div><div class="k">${a}</div><div class="v">${esc(b||"—")}</div></div>`).join("")}</div>
+ return wSec("Step 36","Approved contract",`${esc(p6Lab(c))}, approved ${esc(fmtD(c.approved||""))}. The details below come from the record at step ${c.step_rec}. Go to the ${wLink("ws-copy","signed copy upload")} or ${wLink("ws-recip","recipients")}.`,`<div class="ri-conv">${[["Document",p6Lab(c)],["Supplier",c.supplier_name],["Value",inr(c.value_inr)],[c.contract_type==="PO"?"PO date":"Start",fmtD(c.start_date)],[c.contract_type==="PO"?"Delivery":"End",fmtD(c.contract_type==="PO"?c.delivery_date:c.end_date)]].map(([a,b])=>`<div><div class="k">${a}</div><div class="v">${esc(b||"—")}</div></div>`).join("")}</div>
   <details class="disc" style="margin-top:12px"><summary>Approval chain</summary><div>${p6ChainHTML(r,c)}</div></details>`)
- +wSec("Step 36","Upload the signed copy",`Stored against the request as ${esc(dt)}.`,`<div class="form">${wDrop("file","Upload the signed copy","PDF, required")}${wDrop("annex","Add an annexure","Optional: terms, schedule or price list")}</div>`)
+ +wSec("Step 36","Upload the signed copy",`Stored against the request as ${esc(dt)}.`,`<div class="form">${wDrop("file","Upload the signed copy","PDF, required")}${wDrop("annex","Add an annexure","Optional: terms, schedule or price list")}</div>`,"","ws-copy")
  +wSec("Step 36","Who receives it","AIS sends these when you distribute, and logs each one on the contract.",`<div class="form"><div class="grid2">${wIn("email",`Supplier email, ${esc(c.supplier_name||"")}`,{type:"email",ph:"name@supplier.com"})}</div>${sup?.email?`<p class="fine" style="margin:0">From the supplier master.</p>`:""}
   <div class="p6-mail"><div><span class="k">Email to the supplier</span><b>${esc(c.supplier_name||"Supplier")}</b><span>${esc(p6Lab(c))}: your copy</span><span class="small sub">Attached: ${esc([F.file?.file_name||"the signed copy",F.annex?.file_name].filter(Boolean).join(", "))}</span></div>
-  <div><span class="k">Email and in-app notice to the Initiator</span><b>${esc(uName(r.initiator))}</b><span>Your copy is ready to download in AIS</span><span class="small sub">Download from the request details; each download is logged.</span></div></div></div>`)}
+  <div><span class="k">Email and in-app notice to the Initiator</span><b>${esc(uName(r.initiator))}</b><span>Your copy is ready to download in AIS</span><span class="small sub">Download from the request details; each download is logged.</span></div></div></div>`,"","ws-recip")}
 
-const P6_WS={26:ws26,28:ws26,27:ws27,29:ws27,36:r=>p6Ctr(r)?ws36c(r):ws36(r)};
+const P6_WS={26:ws26,28:ws26,27:ws27,29:ws27,35:ws27,36:r=>p6Ctr(r)?ws36c(r):ws36(r)};
 
 /* ---------- Validation ---------- */
 function p6Check(r){const s=+r.step,F=WS.f,E=[];const err=(k,m)=>E.push({k,msg:m});const c=p6Ctr(r);
@@ -7054,7 +7082,7 @@ openCase=function(id){p10.openCase(id);const r=DB.req.find(x=>x._id===id);const 
   ${sbDetailHTML(r)}
  ${c?`<p class="fine" style="margin:8px 0 0">${esc(INC10.ctype[c.contract_type]||c.contract_type)} <button class="linkbtn" data-ctr="${esc(c.contract_id)}">${esc(c.contract_id)}</button> ends ${esc(fmtD(c.end_date))}, ${p10chip(INC10.ctone[crState(c)]||"n",INC10.cst[crState(c)]||crState(c))}</p>`:""}
   ${ren?`<p class="fine" style="margin:8px 0 0">Renewal of <button class="linkbtn" data-ctr="${esc(ren.contract_id)}">${esc(ren.contract_id)}</button>, which ends ${esc(fmtD(ren.end_date))}.</p>`:""}
-  <div class="actrow" style="margin-top:10px"><button class="btn" id="p10Ask">${ico("spark")}Ask AIS about this request</button></div></div>`;
+  <div class="actrow" style="margin-top:10px"><button class="btn" id="p10Ask" title="Ask AIS about this request">${ico("askcase")}<span>Ask AIS about this request</span></button></div></div>`;
  const a=d.querySelector("#p9Blk")||d.querySelector("#p7Blk")||d.querySelector(".dr-b > .blk");if(a)a.insertAdjacentHTML("afterend",h);else d.querySelector(".dr-b")?.insertAdjacentHTML("beforeend",h);
 $("#p10Ask").onclick=()=>openAsk({case:r._id});scrubNode(d)};
 
@@ -7131,7 +7159,7 @@ function crOpen(id){const c=crById(id);if(!c||!crVisible(c)){toast(c?"That contr
   ${ren?`<div class="turn"><div class="who">Renewal requested</div><p><button class="linkbtn" data-case="${ren._id}">${esc(ren.no)}</button> ${esc(ren.topic)}, ${stChip(caseStatus(ren))}. Renewal reminders stopped (US-152 AC2).</p></div>`:""}
   <div class="blk"><h3>Contract</h3><div class="nb-kv">${kv.map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div></div>
   <div class="blk"><h3>Renewal reminders</h3>${schedHTML}</div>
-  <div class="actrow">${canRenew?`<button class="btn pri" id="crRen">${ico("plus")}Start renewal request</button>`:""}${canRem?`<button class="btn" id="crRem">${ico("send")}Send reminder now</button>`:""}<button class="btn" id="crAsk">${ico("spark")}Ask AIS</button></div>
+  <div class="actrow">${canRenew?`<button class="btn pri" id="crRen">${ico("plus")}Start renewal request</button>`:""}${canRem?`<button class="btn" id="crRem">${ico("send")}Send reminder now</button>`:""}<button class="btn" id="crAsk" title="Ask AIS about this contract">${ico("askcase")}<span>Ask AIS about this contract</span></button></div>
   ${!own&&crMonitored(c)&&st!=="RENEWED"&&S.role==="INITIATOR"?`<p class="fine">Only the Initiator of ${esc(r?.no||"the original request")} starts the renewal.</p>`:""}
   <div class="blk"><h3>History</h3><ol class="nb-log">${(c.history||[]).slice().reverse().map(h=>`<li><span class="small sub">${esc(fmtD(h.d))} ${esc(h.t||"")}</span> ${esc(h.action)}${h.note?` <span class="sub small">${esc(h.note)}</span>`:""}</li>`).join("")||'<li class="sub">No entries.</li>'}</ol></div></div>`);
  const d=$("#drawer");const ren1=$("#crRen");if(ren1)ren1.onclick=()=>crRenew(c);const rm=$("#crRem");if(rm)rm.onclick=()=>{crSend(c,today(),"MANUAL");save();refreshBell?.();crOpen(c.contract_id);toast(`Reminder sent to ${uName(r?.initiator)}${r?.buyer?`, copy ${uName(r.buyer)}`:""}`)};
@@ -7456,6 +7484,7 @@ if(DB.req&&DB.notif&&!DB.inc10){p10Seed();save()}
    Requests, FSK requests and contracts open as a full page in the main area (the old side drawer content is built as before,
    then moved into #dtPage). History entries are pushed per page, not per filter or tab change. ===== */
 Object.assign(IP,{arrowl:'<path d="M19 12H5M12 19l-7-7 7-7"/>'});
+Object.assign(IP,{eyeon:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3" fill="currentColor"/>',askcase:'<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4 3.5V16h-.5A2.5 2.5 0 0 1 4 13.5Z"/><path d="M12 6.2l1 2.3 2.3 1-2.3 1-1 2.3-1-2.3-2.3-1 2.3-1z"/>'});
 const DTK=["case","fskcase","contract"];
 const DT={cur:null,stack:[],originScroll:0,originLabel:"",ctx:"",pend:null,staged:false,recent:null};
 const H={ok:true,n:0,ids:[],idx:0,cur:null,snaps:{},last:null,pre:null,booting:true,restoring:false,skipPop:0,t:0};
@@ -7477,7 +7506,38 @@ function hashFor(key){const [a,b,c]=key.split(":");const e=encodeURIComponent;
 function snapNow(){return{key:pageKey(),title:pageTitle(),S:{module:S.module,view:S.view,gpv:S.gpv,ws:S.ws,wsBack:S.wsBack},wsMode:(typeof WS!=="undefined"&&WS&&WS.mode)||"",fk:FKV.tab,fkMeet:FKV.meet,nbCase:NBV.case,nbTab:NBV.tab,
  stack:DT.stack.map(x=>({kind:x.kind,id:x.id})),originScroll:DT.originScroll,scroll:0}}
 const backLabel=def=>{const p=pageKey()===H.last?H.ids[H.idx-1]:H.cur,sn=p&&H.snaps[p];if(DT.cur&&DT.stack.length>1)return dtTitle(DT.stack[DT.stack.length-2]);if(DT.cur)return DT.originLabel||def;return sn?sn.title:def};
-const backBar=(kind,label)=>`<div class="dt-bar"><button type="button" class="dt-back" data-dtback="${kind}">${ico("arrowl")}<span>Back to ${esc(label)}</span></button></div>`;
+/* Breadcrumb trail instead of a big Back button: sidebar group / page / each page opened from it. Every step but the last goes back to that level. */
+function bcBase(mod){const m=mod||S.module,gp=access(S.role,S.entity).mods.some(x=>x[0]==="gp");
+ if(m==="home")return[["Home","nav:home"]];
+ if(m==="tasks")return[["Work"],["My tasks","nav:tasks"]];
+ if(m==="queue")return[["Work"],[OVERSIGHT.includes(S.role)?"All open requests":"Watching","nav:queue"]];
+ if(m==="board")return gp?[["GP Process","nav:gp"],["Status Board","nav:board"]]:[["Work"],["Status board","nav:board"]];
+ if(m==="profile")return[["Work"],["My profile","nav:profile"]];
+ if(m==="request")return[["GP Process","nav:gp"],["Start a Request","nav:request"]];
+ if(m==="gp"){const v=S.gpv;return v==="carts"?[["GP Process","nav:gp"],["Open Shopping Carts","nav:gp:carts"]]:v==="contracts"?[["GP Process","nav:gp"],["Contract Registry","nav:gp:contracts"]]:v==="registry"?[["GP Process","nav:gp"],["Request Registry","nav:gp:registry"]]:[["GP Process","nav:gp"]]}
+ if(m==="fsk"){const t=FKV.tab;return[["FSK Portal","nav:fsk"],[t==="agenda"?"Agenda":t==="meeting"?"Meeting":"Requests","nav:fsk:"+(t||"cases")]]}
+ if(m==="rep"){const t=rpTabs().find(x=>x[0]===RP.tab);return[["Reports","nav:rep"],[t?t[1]:"Overview","nav:rep"]]}
+ if(m==="admin"){const v=RAIL_TOP.find(x=>x[0]===S.view)?.[1]||MASTERS.find(x=>x.id===S.view)?.name||"Overview";return[["Setup"],["Admin","nav:admin"],[v,"nav:admin"]]}
+ return null}
+function bcNav(k){
+ if(k==="gp:carts")return lbGoCarts();if(k==="gp:contracts")return crGo();if(k==="gp:registry")return regGo();
+ if(k==="gp"){S.gpv="";S.ws=null;WS=null;return go("gp")}
+ if(k==="fsk"||k.startsWith("fsk:")){FKV.tab=k.startsWith("fsk:")&&k!=="fsk:cases"?k.slice(4):"cases";S.ws=null;WS=null;return go("fsk")}
+ if(k==="admin"){S.view="overview";S.ws=null;WS=null;return go("admin")}
+ if(k==="request")return openIntake({});
+ S.ws=null;WS=null;go(k)}
+const bcHTML=(L,cls)=>`<div class="dt-bar${cls?" "+cls:""}"><nav class="crumbs" aria-label="Breadcrumb">${L.map(([t,a],i)=>{const last=i===L.length-1;return(i?'<i aria-hidden="true">/</i>':"")+(a&&!last?`<button type="button" data-cr="${esc(a)}">${esc(t)}</button>`:`<span${last?' aria-current="page"':""}>${esc(t)}</span>`)}).join("")}</nav></div>`;
+function bcTrail(kind,r){
+ if(kind==="ws"){const m=S.wsBack&&S.wsBack!=="gp"?S.wsBack:"tasks";const B=bcBase(m)||[["Work"],["My tasks","nav:tasks"]];return[...B,...(r?[[r.no,"case:"+r._id],[`Step ${r.step}`]]:[["Step"]])]}
+ if(kind==="page")return bcBase()||[];
+ const B=bcBase()||[["Home","nav:home"]];const n=DT.stack.length;
+ return[...B.map((x,i)=>[x[0],i===B.length-1?"close":x[1]]),...DT.stack.map((d,i)=>[dtTitle(d),i<n-1?"dt:"+i:null])]}
+const backBar=(kind,label,r)=>bcHTML(bcTrail(kind,r),kind==="page"?"pg-bar":"");
+document.addEventListener("click",e=>{const b=e.target.closest("[data-cr]");if(!b)return;e.preventDefault();const a=b.dataset.cr;
+ if(a.startsWith("nav:"))return bcNav(a.slice(4));
+ if(a==="close")return dtClose();
+ if(a.startsWith("dt:")){const i=+a.slice(3),prev=DT.stack[i];if(!prev)return;DT.recent={stack:DT.stack.slice(0,i),originScroll:DT.originScroll,originLabel:DT.originLabel};DT.cur=null;return openDetail(prev)}
+ if(a.startsWith("case:")){const id=a.slice(5);S.ws=null;WS=null;S.module=S.wsBack&&S.wsBack!=="gp"?S.wsBack:"tasks";renderShell();return openCase(id)}});
 
 (function(){const h=document.getElementById("dtPage");if(h)h.hidden=true})();
 /* 1. Drawer content for these kinds is staged, then moved into the page */
@@ -7633,11 +7693,15 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-dtback]");
 /* workspace pages get the same Back bar */
 let SF_KEEP=false;S.sf=S.sf||"";
 const go12=go;go=function(m){if(m==="tasks"&&!SF_KEEP)S.sf="";return go12(m)};
-const wsHTML1=wsHTML;wsHTML=function(r){return backBar("ws",backLabel("My Tasks"))+wsHTML1(r)};
+const wsHTML1=wsHTML;wsHTML=function(r){return backBar("ws","",r)+wsHTML1(r)};
 /* sign-out and role or entity switches close an open page */
 const render01=render0;render0=function(){dtReset();H.last=null;H.snaps={};return render01()};
-const shell12=renderShell;renderShell=function(){if(DT.cur&&DT.ctx!==ctxKey())dtClose();shell12();histSync()};
-const render12=render;render=function(){render12();histSync()};
+/* Every list or module page opens with its breadcrumb trail (detail and step pages carry theirs through backBar). */
+function pgBack(){const m=$("#main");if(!m||m.hidden||DT.cur||S.ws||!S.user)return;
+ m.querySelectorAll(".pg-bar").forEach(x=>x.remove());if(m.querySelector("[data-dtback]")||S.module==="nb")return;
+ const L=bcTrail("page");if(L.length<2)return;m.insertAdjacentHTML("afterbegin",backBar("page"))}
+const shell12=renderShell;renderShell=function(){if(DT.cur&&DT.ctx!==ctxKey())dtClose();shell12();pgBack();histSync()};
+const render12=render;render=function(){render12();pgBack();histSync()};
 
 /* ===== GP Process UI structure: record page, path, list view, step header ===== */
 function rpPathHTML(r){const steps=pathFor(r).filter(n=>n!==4);const st=n=>caseStatus({module:r.module,step:n});const seq=[];
@@ -7738,6 +7802,7 @@ function rpBuild(pg,desc){const drb=pg.querySelector(".dr-b"),drh=pg.querySelect
  chips.forEach(c=>hl.querySelector(".rp-id").appendChild(c));
  if(r){const fl=rpFlowHTML(r);if(fl)hl.querySelector(".rp-hl-h").insertAdjacentHTML("afterend",fl)}
  if(meta){meta.className="rp-sub";hl.querySelector(".rp-hl-h").appendChild(meta)}
+ if(r&&drb.querySelector("#p6Blk")){const ct=p6Ctr(r);hl.querySelector(".rp-hl-h").insertAdjacentHTML("beforeend",`<p class="rp-sub rp-cd">${ico("doc")}${wLink("p6Blk",esc(ct?p6Lab(ct):"Contract / PO document"))}<span> · ${esc(ct&&ct.status==="DISTRIBUTED"?"signed copy distributed":ct&&ct.status==="APPROVED"?"approved, copy to upload":"in approval")}</span></p>`)}
  const actions=hl.querySelector(".rp-hl-a");["p10Sb","p10Ask","crAsk"].forEach(id=>{const b=pg.querySelector("#"+id);if(b)actions.appendChild(b)});
  if(!actions.children.length)actions.remove();
  /* action card: whose turn it is and the step actions */
@@ -7746,19 +7811,134 @@ function rpBuild(pg,desc){const drb=pg.querySelector(".dr-b"),drh=pg.querySelect
  let act=null;if(turn||acts.length||rest.length||intro){act=document.createElement("section");act.className="rp-act"+(turn&&turn.classList.contains("mine")?" mine":"")+(r&&isOpen(r)?" slim":"");act.setAttribute("aria-label","Next action");if(intro)act.appendChild(intro);if(turn)act.appendChild(turn);acts.forEach(a=>act.appendChild(a));rest.forEach(c=>act.appendChild(c))}
  /* tabs: details, route and timeline; activity goes to the side column */
  const side=[],tabs={details:[],route:[]};blks.forEach(b=>{const t=h3(b);if(/^(History|Why you see)/i.test(t))side.push(b);else if(/^(Route|Timeline|Schedule)$/i.test(t))tabs.route.push(b);else tabs.details.push(b)});
- tabs.route.sort((a,b)=>(/^Route$/i.test(h3(a))?0:1)-(/^Route$/i.test(h3(b))?0:1));const defs=[["details","Details"],["route","Route & schedule"]].filter(([k])=>tabs[k].length);
+ tabs.route.sort((a,b)=>(/^Route$/i.test(h3(a))?0:1)-(/^Route$/i.test(h3(b))?0:1));let nDocs=null;if(r){const db=fxDocsBlock(r);nDocs=fxDocs(r).length;tabs.documents=[db];tabs.discussion=[fxForumBlock(r)]}
+ const defs=[["details","Details"],["route","Route & schedule"],["documents","Documents",nDocs],["discussion","Discussion"]].filter(([k])=>tabs[k]&&tabs[k].length);
  const key=desc.kind+":"+desc.id;DT.tab=DT.tab||{};let cur=DT.tab[key];if(!defs.some(d=>d[0]===cur))cur=defs[0]&&defs[0][0];
  const main=document.createElement("div");main.className="rp-main";
- if(defs.length>1){const tb=document.createElement("div");tb.className="rp-tabs";tb.setAttribute("role","tablist");tb.innerHTML=defs.map(([k,l])=>`<button type="button" role="tab" data-rptab="${k}" aria-selected="${k===cur}">${l}</button>`).join("");main.appendChild(tb)}
+ if(defs.length>1){const tb=document.createElement("div");tb.className="rp-tabs";tb.setAttribute("role","tablist");tb.innerHTML=defs.map(([k,l,n])=>`<button type="button" role="tab" data-rptab="${k}" aria-selected="${k===cur}">${l}${n!=null?`<b class="rp-tc">${n}</b>`:""}</button>`).join("");main.appendChild(tb)}
  defs.forEach(([k])=>{const pn=document.createElement("div");pn.className="rp-panel";pn.dataset.rppanel=k;pn.setAttribute("role","tabpanel");pn.hidden=defs.length>1&&k!==cur;tabs[k].forEach(b=>pn.appendChild(b));main.appendChild(pn)});
- main.addEventListener("click",e=>{const b=e.target.closest("[data-rptab]");if(!b)return;DT.tab[key]=b.dataset.rptab;main.querySelectorAll("[data-rptab]").forEach(x=>x.setAttribute("aria-selected",String(x===b)));main.querySelectorAll("[data-rppanel]").forEach(x=>x.hidden=x.dataset.rppanel!==b.dataset.rptab)});
- const body=document.createElement("div");body.className="rp-body";body.appendChild(main);
+ const wide=k=>k==="documents"||k==="discussion";
+ main.addEventListener("click",e=>{const b=e.target.closest("[data-rptab]");if(!b)return;DT.tab[key]=b.dataset.rptab;main.closest(".rp-body")?.classList.toggle("tab-wide",wide(b.dataset.rptab));main.querySelectorAll("[data-rptab]").forEach(x=>x.setAttribute("aria-selected",String(x===b)));main.querySelectorAll("[data-rppanel]").forEach(x=>x.hidden=x.dataset.rppanel!==b.dataset.rptab)});
+ const body=document.createElement("div");body.className="rp-body"+(wide(cur)?" tab-wide":"");body.appendChild(main);
  if(side.length){const sd=document.createElement("aside");sd.className="rp-side";sd.setAttribute("aria-label","Activity");sd.insertAdjacentHTML("afterbegin",'<h2 class="rp-side-h">Activity</h2>');side.forEach(b=>sd.appendChild(b));body.appendChild(sd)}
  const rp=document.createElement("div");rp.className="rp";rp.appendChild(hl);if(r)hl.insertAdjacentHTML("beforeend",rpPathHTML(r));if(act)rp.appendChild(act);rp.appendChild(body);
  drh.remove();drb.replaceWith(rp)}
 /* hook into the detail page */
 function rpCenter(){$$(".rp-path").forEach(p=>{const c=p.querySelector("li.cur");if(c&&p.scrollWidth>p.clientWidth)p.scrollLeft=c.offsetLeft-(p.clientWidth-c.offsetWidth)/2})}
 const dtCommit1=dtCommit;dtCommit=function(desc){dtCommit1(desc);if(desc.kind==="case"||desc.kind==="contract"||desc.kind==="fskcase"){rpBuild($("#dtPage"),desc);rpCenter()}};
+/* ---------- Request tabs: Documents and Discussion ---------- */
+function fxDocs(r){const L=[];const sn=n=>`Step ${n} · ${(typeof P5_TITLE!=="undefined"&&P5_TITLE[n])||stepRow("GP",n)?.name||""}`;const who=u=>uName(u)||(u&&u!=="AIS"?u:"AIS");
+ const TY={RFQ_PACKAGE:["RFQ package","Request intake"],EVIDENCE:["Prerequisite evidence","Prerequisite"],NEG_EVIDENCE:["Negotiation evidence pack","Negotiation"],PO_COPY:["Signed purchase order copy",sn(36)],FC_COPY:["Signed frame contract copy",sn(36)],SCRAP_COPY:["Signed scrap contract copy",sn(36)]};
+ (r.docs||[]).forEach(d=>{const t=TY[d.doc_type]||[String(d.doc_type||"Document").replace(/_/g," ").toLowerCase().replace(/^./,x=>x.toUpperCase()),""];L.push({n:d.file_name,kind:t[0],about:"",stage:t[1],by:who(d.uploaded_by),when:String(d.uploaded_at||""),size:d.size,v:d.version_no,ai:d.is_ai_generated})});
+ (r.offers||[]).filter(o=>o.file).forEach(o=>L.push({n:o.file.file_name,kind:"Supplier offer",about:`${o.name}${+o.amount>0?`, ${money(o.amount,o.currency)}`:""}`,stage:sn(17),by:who(r.buyer),when:String(o.file.at||o.received||""),size:o.file.size,v:1}));
+ if(r.lb&&r.lb.sfo&&r.lb.sfo.file)L.push({n:r.lb.sfo.file.file_name,kind:"Signed SFO",about:"Approved comparison and supplier choice",stage:"Comparison and SFO",by:who(r.buyer),when:String(r.lb.sfo.d||""),size:r.lb.sfo.file.size,v:1});
+ (DB.fskcase||[]).filter(c=>c.request_id===r._id).forEach(c=>(c.versions||[]).forEach(v=>L.push({n:v.file.file_name,kind:"FSK presentation",about:v.note||"Presentation for the forum",stage:sn(5),by:who(v.by||c.initiator),when:String(v.d||""),size:v.file.size,v:v.v})));
+ (r.queries||[]).forEach(q=>(q.docs||[]).forEach(d=>L.push({n:d.file_name,kind:"Query attachment",about:`Answer to a ${roleName(q.from_role)} query`,stage:`Step ${q.step}`,by:roleName(q.to_role),when:String(q.answered||q.raised||""),size:d.size,v:1})));
+ const c=typeof p6Ctr==="function"?p6Ctr(r):null;if(c)p6Tasks(c).forEach(t=>{const d=t.evidence_doc;if(d&&d.file_name)L.push({n:d.file_name,kind:"Approval evidence",about:`${roleName(t.role)} approval, recorded by the Buyer`,stage:sn(c.step_appr),by:who(t.recorded_by),when:String(t.approved_on||t.decided_at||""),size:d.size,v:1})});
+ return L.sort((a,b)=>b.when.localeCompare(a.when))}
+function fxDocsBlock(r){const L=fxDocs(r);const b=document.createElement("div");b.className="blk fx-docs";
+ const kinds=[...new Set(L.map(x=>x.kind))];
+ b.innerHTML=`<h3>Documents <span class="chip">${L.length}</span></h3>`+(L.length?`<div class="fx-bar"><label class="fx-f"><span class="sub small">Show</span><select data-fxdoc aria-label="Filter documents by type"><option value="">All types</option>${kinds.map(k=>`<option>${esc(k)}</option>`).join("")}</select></label></div>
+ <div class="tablewrap"><table class="fx-dt"><thead><tr><th>Document</th><th>About</th><th>Uploaded by</th><th>Stage</th><th>Date</th></tr></thead><tbody>${L.map(x=>{const ext=(String(x.n).match(/\.([A-Za-z0-9]{2,5})$/)||[])[1]||"";return`<tr data-kind="${esc(x.kind)}"><td><div class="fx-file"><span class="fx-ext">${esc((ext||"file").toUpperCase())}</span><span><b>${esc(x.n)}</b><small>${x.v>1?`Version ${x.v}, `:""}${x.size?esc(kb(x.size)):""}${x.ai?", AI-generated":""}</small></span></div></td>
+ <td><b class="fx-k">${esc(x.kind)}</b>${x.about?`<small class="fx-s">${esc(x.about)}</small>`:""}</td><td>${esc(x.by)}</td><td>${esc(x.stage||"—")}</td><td class="nw">${x.when?esc(fmtD(x.when.slice(0,10))):"—"}${x.when.length>10?`<small class="fx-s">${esc(x.when.slice(11,16))}</small>`:""}</td></tr>`}).join("")}</tbody></table></div>`
+ :emptyHTML("No documents yet","The RFQ package, supplier offers, signed SFO and contract copy appear here as soon as they are uploaded.","list"));
+ return b}
+/* Discussion: a forum thread per topic, seeded from the request, with replies and new topics kept on the request */
+const FX={sel:{},nf:{}};
+function fxPeople(r){const e=r.entity;const P=(role,sso)=>{const s=sso||roleHolders(role,e)[0]||"";return{sso:s,name:uName(s)||roleName(role),role:roleName(role),key:role}};
+ return{ini:P("INITIATOR",r.initiator),buy:P("BUYER",r.buyer),sh:P("SECTION_HEAD_BA"),cc:P("CC_HEAD"),hba:P("HEAD_BA")}}
+function fxThreads(r){const e=r.entity,p=fxPeople(r),T=[];const cr=String(r.created||today()).slice(0,10);
+ const at=(k,t)=>{let d=addWork(e,cr,k);if(d>today())d=today();return d+" "+t};const topic=r.topic;const docs=(r.docs||[]).filter(d=>d.doc_type==="RFQ_PACKAGE");
+ const offers=(r.offers||[]).filter(o=>+o.amount>0).slice().sort((a,b)=>a.amount-b.amount);const bl=(r.bidders||[]).map(b=>b.name);
+ const s=+r.step;
+ T.push({id:"t1",title:`Scope and specification: ${topic}`,tag:"Request intake",done:s>11,posts:[
+  {w:p.ini,at:at(0,"09:40"),text:`Hello all, I have raised ${r.no} for ${topic}. Budget is ${money(r.amount,r.currency)} on cost center ${r.cost_center}. ${docs.length?"The RFQ package is attached with the specification.":"I will add the RFQ package with the specification shortly."}`,att:docs.slice(0,2).map(d=>d.file_name)},
+  {w:p.sh,at:at(1,"11:05"),text:"Thanks. Before we invite bidders: is the quantity fixed, and is a single delivery acceptable?"},
+  {w:p.ini,at:at(1,"14:20"),text:"Quantity is fixed as in the package. One lot is fine, delivery at the plant gate, EXW is acceptable for us."},
+  {w:p.buy,at:at(2,"10:15"),text:"Noted. I will prepare the bidder list on this basis and share it for your comments."}]});
+ if(bl.length||s>=13)T.push({id:"t2",title:"Bidder list and supplier suggestions",tag:"Bidders",done:s>16,posts:[
+  {w:p.buy,at:at(3,"10:30"),text:`Proposed bidders${bl.length?`: ${bl.join(", ")}`:" are ready in the request"}. Please tell me if anyone should not be invited.`},
+  {w:p.ini,at:at(3,"15:10"),text:"Please keep the regional supplier we used last year. I have added my justification in the request."},
+  {w:p.sh,at:at(4,"09:50"),text:"Bidder list looks fine to me. Approved, the RFQ can go to the market."}]});
+ if(offers.length||s>=18)T.push({id:"t3",title:"Offers received and comparison",tag:"Offers",done:s>20,posts:[
+  {w:p.buy,at:at(8,"11:00"),text:offers.length?`${offers.length} offer${offers.length>1?"s":""} received. Lowest is ${offers[0].name} at ${money(offers[0].amount,offers[0].currency)}. The full comparison is in the SFO.`:"Offers are due this week. I will post the comparison once they are in.",att:offers.length&&offers[0].file?[offers[0].file.file_name]:[]},
+  {w:p.cc,at:at(8,"16:25"),text:"Does the lowest offer meet our delivery date? That is the point I need before approving."},
+  {w:p.buy,at:at(9,"09:35"),text:`Yes. ${offers.length?offers[0].name:"The supplier"} confirmed delivery in the stated window and a ${(r.sfo&&r.sfo.f&&r.sfo.f.warranty)||"12 months"} warranty.`}]});
+ if(r.neg||(r.lb&&r.lb.neg)||s>=24)T.push({id:"t4",title:"Negotiation and commercial terms",tag:"Negotiation",done:s>29,posts:[
+  {w:p.buy,at:at(11,"10:20"),text:r.neg&&r.neg.value?`Negotiation is done. The agreed value is ${money(r.neg.value,r.neg.currency||r.currency)}${(r.neg.value<r.amount)?", below the budget":""}.`:"Negotiation is under way. I will post the agreed value here."},
+  {w:p.sh,at:at(12,"13:45"),text:`Payment terms ${(r.sfo&&r.sfo.f&&r.sfo.f.payment)||"30 days net"} are as per policy. Approved from my side.`}]});
+ const w=whoAt(r),hold=(w.task||[]).find(c=>c!=="INITIATOR"&&roleHolders(c,e).length),holder=hold==="BUYER"?p.buy:hold?{sso:roleHolders(hold,e)[0],name:uName(roleHolders(hold,e)[0])||roleName(hold),role:roleName(hold),key:hold}:p.sh;
+ const stp=(typeof P5_TITLE!=="undefined"&&P5_TITLE[s])||stepRow("GP",s)?.name||"the current step";
+ T.push({id:"t5",title:"Where is this with approvals?",tag:"Status",done:r.status==="CLOSED",posts:[
+  {w:p.ini,at:at(Math.min(13,Math.max(1,s>>1)),"08:30"),text:`Could someone tell me where ${r.no} stands? I would like to plan around it.`},
+  {w:holder,at:at(Math.min(14,Math.max(2,(s>>1)+1)),"10:05"),text:r.status==="CLOSED"?"This one is closed. The signed copy is with the Buyer and the Initiator.":`It is with me at "${stp}". I will pick it up in the next working day and update here.`}]});
+ const x=r.fx||{};(x.topics||[]).forEach(t=>T.push({id:t.id,title:t.title,tag:t.tag||"General",done:false,posts:[{w:{sso:t.by,name:uName(t.by)||t.byName,role:t.role,key:t.roleKey},at:t.at,text:t.text}]}));
+ (x.posts||[]).forEach(q=>{const t=T.find(y=>y.id===q.t);if(t)t.posts.push({w:{sso:q.by,name:uName(q.by)||q.byName,role:q.role,key:q.roleKey},at:q.at,text:q.text})});
+ T.forEach(t=>{t.posts.sort((a,b)=>a.at.localeCompare(b.at));const o=(x.res||{})[t.id];if(o){t.done=!!o.v;t.resBy=o.v?`${o.byName}, ${fmtD(o.at.slice(0,10))}`:""}});return T}
+/* Who may resolve or reopen a topic: its starter, the Initiator, the Buyer on the request, and the oversight roles */
+const fxCan=(r,t)=>{const first=t.posts[0]&&t.posts[0].w&&t.posts[0].w.sso;return !!S.user&&(S.user===first||S.user===r.initiator||S.user===r.buyer||["SECTION_HEAD_BA","HEAD_BA","ADMIN"].includes(S.role))};
+const fxHue=k=>{let h=0;for(const c of String(k||""))h=(h*31+c.charCodeAt(0))%360;return h};
+function fxPostHTML(q){const w=q.w;return`<article class="fx-post"><span class="fx-av" style="--h:${fxHue(w.key||w.name)}" aria-hidden="true">${esc(initials(w.name))}</span><div class="fx-pb"><header><b>${esc(w.name)}</b><span class="chip">${esc(w.role)}</span><time>${esc(fmtD(q.at.slice(0,10)))}, ${esc(q.at.slice(11,16))}</time></header><p>${esc(q.text)}</p>${(q.att||[]).length?`<div class="fx-atts">${q.att.map(a=>`<span class="fx-att">${ico("doc")}${esc(a)}</span>`).join("")}</div>`:""}</div></article>`}
+function fxInner(r){const T=fxThreads(r);const sel=T.find(t=>t.id===FX.sel[r._id])||T.find(t=>!t.done)||T[0];FX.sel[r._id]=sel.id;const nf=FX.nf[r._id];
+ const mu=me();const last=t=>t.posts[t.posts.length-1];
+ return`<div class="fx-top"><div><h3>Discussion <span class="chip">${T.length} topics</span></h3><p class="fine" style="margin:0">Everyone working on ${esc(r.no)} talks here, so the history stays with the request.</p></div><button type="button" class="btn" data-fx="new">${ico("plus")}New topic</button></div>
+ ${nf?`<form class="fx-new" data-fx-form onsubmit="return false"><label>Topic<input data-fx-title placeholder="For example: Delivery date for the second lot" maxlength="120"></label><label>First message<textarea data-fx-text rows="3" placeholder="Write your question or update"></textarea></label><div class="actrow"><button type="button" class="btn pri" data-fx="create">${ico("send")}Start topic</button><button type="button" class="btn" data-fx="new">Cancel</button></div></form>`:""}
+ <div class="fx-grid"><nav class="fx-list" aria-label="Topics">${T.map(t=>`<button type="button" class="fx-t${t.id===sel.id?" on":""}" data-fxt="${t.id}" aria-current="${t.id===sel.id}"><span class="fx-tt">${esc(t.title)}</span><span class="fx-tm"><span class="chip">${esc(t.tag)}</span>${t.done?'<span class="chip ok">Resolved</span>':""}</span><span class="fx-ts">${t.posts.length} message${t.posts.length>1?"s":""}, last by ${esc(last(t).w.name)}, ${esc(fmtD(last(t).at.slice(0,10)))}</span></button>`).join("")}</nav>
+ <section class="fx-conv" aria-label="${esc(sel.title)}"><header class="fx-ch"><h4>${esc(sel.title)}</h4><span class="chip">${esc(sel.tag)}</span>${sel.done?'<span class="chip ok">Resolved</span>':'<span class="chip warn">Open</span>'}${fxCan(r,sel)?`<button type="button" class="btn fx-res" data-fx="${sel.done?"reopen":"resolve"}">${ico(sel.done?"undo":"check")}${sel.done?"Reopen topic":"Mark as resolved"}</button>`:""}</header>${sel.resBy?`<p class="fx-rn">Marked as resolved by ${esc(sel.resBy)}. Replying reopens it.</p>`:""}<div class="fx-posts">${sel.posts.map(fxPostHTML).join("")}</div>
+ <div class="fx-reply"><span class="fx-av" style="--h:${fxHue(S.role)}" aria-hidden="true">${esc(initials(mu.full_name))}</span><div class="fx-rb"><textarea data-fx-reply rows="2" placeholder="Reply to this topic" aria-label="Reply"></textarea><div class="fx-rf"><span class="sub small">Posting as ${esc(mu.full_name)}, ${esc(roleName(S.role))}</span><button type="button" class="btn pri" data-fx="send">${ico("send")}Post reply</button></div></div></div></section></div>`}
+function fxForumBlock(r){const b=document.createElement("div");b.className="blk fx";b.dataset.fxcase=r._id;b.innerHTML=fxInner(r);return b}
+document.addEventListener("click",e=>{const root=e.target.closest&&e.target.closest(".fx[data-fxcase]");if(!root)return;const r=DB.req.find(x=>x._id===root.dataset.fxcase);if(!r)return;
+ const paint=()=>{root.innerHTML=fxInner(r)};const t=e.target.closest("[data-fxt]");
+ if(t){FX.sel[r._id]=t.dataset.fxt;paint();return}
+ const a=e.target.closest("[data-fx]");if(!a)return;const k=a.dataset.fx;const base=()=>({by:S.user,byName:me().full_name,role:roleName(S.role),roleKey:S.role,at:today()+" "+nowTime().slice(0,5)});
+ if(k==="new"){FX.nf[r._id]=!FX.nf[r._id];paint();return}
+ if(k==="resolve"||k==="reopen"){const T0=fxThreads(r).find(x=>x.id===FX.sel[r._id]);if(!T0||!fxCan(r,T0))return;r.fx=r.fx||{};(r.fx.res=r.fx.res||{})[T0.id]={v:k==="resolve",...base()};save();paint();toast(k==="resolve"?"Topic marked as resolved":"Topic reopened");return}
+ if(k==="send"){const ta=root.querySelector("[data-fx-reply]"),v=ta.value.trim();if(!v){ta.focus();return}r.fx=r.fx||{};(r.fx.posts=r.fx.posts||[]).push({...base(),t:FX.sel[r._id],text:v});if(r.fx.res&&r.fx.res[FX.sel[r._id]]&&r.fx.res[FX.sel[r._id]].v)r.fx.res[FX.sel[r._id]]={v:false,...base()};else if(fxThreads(r).find(x=>x.id===FX.sel[r._id]&&x.done)){(r.fx.res=r.fx.res||{})[FX.sel[r._id]]={v:false,...base()}}save();paint();const ps=root.querySelector(".fx-posts");if(ps&&ps.lastElementChild)ps.lastElementChild.scrollIntoView({block:"nearest"});return}
+ if(k==="create"){const ti=root.querySelector("[data-fx-title]"),tx=root.querySelector("[data-fx-text]");const title=ti.value.trim(),text=tx.value.trim();if(!title||!text){(title?tx:ti).focus();return}
+  const id="u"+Date.now().toString(36);r.fx=r.fx||{};(r.fx.topics=r.fx.topics||[]).push({...base(),id,title,tag:"General",text});FX.sel[r._id]=id;FX.nf[r._id]=false;save();paint()}});
+document.addEventListener("change",e=>{const s=e.target.closest&&e.target.closest("[data-fxdoc]");if(!s)return;const v=s.value;const box=s.closest(".fx-docs");box.querySelectorAll("tbody tr").forEach(tr=>tr.hidden=!!v&&tr.dataset.kind!==v)});
+/* Simple in-page links: jump to a section further down, opening the tab that holds it */
+document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a[data-jump]");if(!a)return;e.preventDefault();const el=document.getElementById(a.dataset.jump);if(!el)return;
+ const pn=el.closest("[data-rppanel]");if(pn&&pn.hidden){const tb=document.querySelector(`[data-rptab="${pn.dataset.rppanel}"]`);if(tb)tb.click()}
+ el.scrollIntoView({block:"start"});el.classList.remove("ws-flash");void el.offsetWidth;el.classList.add("ws-flash")});
+document.head.insertAdjacentHTML("beforeend",`<style id="jumpcss">
+.ws-jump{color:var(--brand);font-weight:600;text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}.ws-jump:hover{text-decoration-thickness:2px}
+.ri-sec,.blk{scroll-margin-top:84px}
+.rp-cd{display:flex;align-items:center;gap:6px;margin-top:2px}.rp-cd svg.i{width:15px;height:15px;color:var(--muted)}
+@keyframes wsFlash{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--brand) 55%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
+.ws-flash{animation:wsFlash 1.1s ease-out 1}
+@media (prefers-reduced-motion:reduce){.ws-flash{animation:none}}
+</style>`);
+document.head.insertAdjacentHTML("beforeend",`<style id="fxcss">
+.rp-tabs button .rp-tc{margin-left:6px;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--raise);color:var(--muted)}
+.rp-tabs button[aria-selected="true"] .rp-tc{background:var(--brand-soft);color:var(--brand)}
+.rp-body.tab-wide{grid-template-columns:minmax(0,1fr)}.rp-body.tab-wide>.rp-side{display:none}
+.fx-bar{display:flex;justify-content:flex-end;margin:0 0 8px}.fx-f{display:flex;align-items:center;gap:8px}.fx-f select{padding:6px 10px}
+.fx-dt td{vertical-align:top}.fx-dt .nw{white-space:nowrap}
+.fx-file{display:flex;gap:10px;align-items:flex-start;min-width:0}.fx-file b{display:block;overflow-wrap:anywhere}.fx-file small,.fx-s{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:1px}
+.fx-ext{flex:none;min-width:42px;text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.04em;padding:6px 4px;border-radius:7px;background:var(--brand-soft);color:var(--brand)}
+.fx-k{font-weight:600}
+.fx-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin:0 0 14px}.fx-top h3{margin:0 0 4px}
+.fx-new{display:grid;gap:10px;padding:14px;border:1px solid var(--line);border-radius:var(--r-m);background:var(--raise);margin:0 0 14px}
+.fx-new label{display:grid;gap:4px;font-size:12.5px;font-weight:600;color:var(--ink)}.fx-new input,.fx-new textarea{font:inherit;font-weight:400;width:100%}
+.fx-grid{display:grid;grid-template-columns:minmax(210px,270px) minmax(0,1fr);gap:16px;align-items:start}
+.fx-list{display:grid;gap:6px;align-content:start}
+.fx-t{display:grid;gap:5px;text-align:left;padding:11px 12px;border:1px solid var(--line);border-radius:var(--r-m);background:var(--panel);color:var(--text);cursor:pointer}
+.fx-t:hover{border-color:var(--brand)}.fx-t.on{border-color:var(--brand);background:var(--brand-soft)}
+.fx-tt{font-weight:650;color:var(--ink);line-height:1.3;overflow-wrap:anywhere}.fx-tm{display:flex;flex-wrap:wrap;gap:4px}.fx-ts{font-size:11.5px;color:var(--muted)}
+.fx-conv{border:1px solid var(--line);border-radius:var(--r-m);background:var(--panel);min-width:0}
+.fx-ch{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line2)}.fx-ch h4{margin:0;font-size:15px;color:var(--ink);flex:1 1 220px}.fx-res{margin-left:auto}.fx-res svg.i{width:16px;height:16px}.fx-rn{margin:0;padding:8px 16px;font-size:12.5px;color:var(--muted);background:var(--raise);border-bottom:1px solid var(--line2)}
+.fx-posts{display:grid;gap:0;padding:6px 16px}
+.fx-post{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--line2)}.fx-post:last-child{border-bottom:0}
+.fx-av{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff;background:hsl(var(--h) 42% 38%)}.fx-av svg.i{width:18px;height:18px}
+.fx-pb{min-width:0;flex:1}.fx-pb header{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-bottom:4px}.fx-pb header b{color:var(--ink)}.fx-pb time{font-size:12px;color:var(--muted);margin-left:auto}
+.fx-pb p{margin:0;line-height:1.5;overflow-wrap:anywhere}
+.fx-atts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.fx-att{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;background:var(--raise)}.fx-att svg.i{width:14px;height:14px;color:var(--muted)}
+.fx-reply{display:flex;gap:12px;padding:14px 16px;border-top:1px solid var(--line2);background:var(--raise);border-radius:0 0 var(--r-m) var(--r-m)}
+.fx-rb{flex:1;min-width:0;display:grid;gap:8px}.fx-rb textarea{width:100%;font:inherit;resize:vertical}.fx-rf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+@media (max-width:900px){.fx-grid{grid-template-columns:minmax(0,1fr)}.fx-list{grid-auto-flow:column;grid-auto-columns:minmax(220px,1fr);overflow-x:auto}}
+</style>`);
+
 
 /* cart list and Contract Registry follow the list-view pattern: card header with search and filters, table flush below */
 function gpListify(){if(S.module!=="gp"||S.ws||!S.gpv)return;const c=$("#content");if(!c||c.querySelector(".lv"))return;
@@ -8028,14 +8208,14 @@ items=function(){const had=IT;const res=items16.apply(this,arguments);if(had||re
   res.Q.sort((a,b)=>b.tm.age-a.tm.age)}
  return res};
 const watchBtnHTML=r=>{const w=whoAt(r);if(w.task.includes(S.role))return"";const ex=isWatched(r._id),imp=!ex&&w.queue.includes(S.role),on=ex||imp;
- return`<button type="button" class="btn rp-watch" data-watch="${r._id}"${imp?' data-implicit="1"':""} aria-pressed="${on}" title="${imp?"Your role follows this step, so it is already in your Watching list":on?"Stop watching this request":"Add this request to your Watching list"}">${ico(on?"check":"eye")}<span>${on?"Watching":"Watch"}</span></button>`};
+ return`<button type="button" class="btn rp-watch" data-watch="${r._id}"${imp?' data-implicit="1"':""} aria-pressed="${on}" title="${imp?"Watching. Your role follows this step, so it is already in your Watching list":on?"Watching. Click to stop watching this request":"Watch. Add this request to your Watching list"}">${ico(on?"eyeon":"eye")}<span>${on?"Watching":"Watch"}</span></button>`};
 const rpBuild16=rpBuild;
 rpBuild=function(pg,desc){const res=rpBuild16.apply(this,arguments);
  try{if(desc&&desc.kind==="case"){const r=DB.req.find(x=>x._id===desc.id),hl=pg.querySelector(".rp-hl");
   if(r&&r.module==="GP"&&hl&&isOpen(r)&&!OVERSIGHT.includes(S.role)&&!hl.querySelector("[data-watch]")){let a=hl.querySelector(".rp-hl-a");if(!a){a=document.createElement("div");a.className="rp-hl-a";hl.querySelector(".rp-hl-t").appendChild(a)}a.insertAdjacentHTML("afterbegin",watchBtnHTML(r))}}}catch(e){}
  return res};
 document.addEventListener("click",e=>{const b=e.target.closest("[data-watch]");if(!b)return;if(b.dataset.implicit){toast("Your role already follows this step, so it is in your Watching list.");return}const on=b.getAttribute("aria-pressed")!=="true";setWatch(b.dataset.watch,on);
- b.setAttribute("aria-pressed",String(on));b.title=on?"Stop watching this request":"Add this request to your Watching list";b.innerHTML=ico(on?"check":"eye")+`<span>${on?"Watching":"Watch"}</span>`;toast(on?"Added to your Watching list":"Removed from your Watching list")});
+ b.setAttribute("aria-pressed",String(on));b.title=on?"Watching. Click to stop watching this request":"Watch. Add this request to your Watching list";b.innerHTML=ico(on?"eyeon":"eye")+`<span>${on?"Watching":"Watch"}</span>`;toast(on?"Added to your Watching list":"Removed from your Watching list")});
 document.addEventListener("change",e=>{const el=e.target;if(el&&el.matches&&el.matches("[data-riw]")&&typeof RI!=="undefined"&&RI)RI.watch=el.checked});
 /* submitting a new request adds it to the Initiator's Watching list unless the box was cleared */
 const riSubmit16=riSubmit;
