@@ -7786,7 +7786,7 @@ const dtCommit2=dtCommit;dtCommit=function(desc){dtCommit2(desc);const bar=$("#d
  if(L)bar.insertAdjacentHTML("beforeend",crumbsHTML(L))};
 /* ---------- Negotiation Desk: the deployed negotiation workspace opens inside this page (Render) ---------- */
 const metaAddr=n=>{const v=((document.querySelector('meta[name="'+n+'"]')||{}).content||"").trim().replace(/\/+$/,"");return/^https?:\/\/[^\s"<>]+$/.test(v)?v:""};
-const NEG_BASE=metaAddr("negdesk-web")||(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)?"http://localhost:3000":"https://negotiation-web.onrender.com");
+let NEG_BASE=metaAddr("negdesk-web")||(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)?"http://localhost:3000":"https://negotiation-web.onrender.com");
 const NEG_TITLE="Negotiation Desk";
 Object.assign(IP,{pin:'<path d="M12 17v5"/><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6z"/>',ews:'<path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="m3 12.5 9 5 9-5"/><path d="m3 17 9 5 9-5"/>',chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',ppl:'<path d="M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7.5" r="3.5"/><path d="M21 20v-2a4 4 0 0 0-3-3.9M16 3.1a3.5 3.5 0 0 1 0 6.8"/>'});
 const NBN_KIDS=[["/","Dashboard","grid"],["/events","Events","cal"],["/negotiations","Negotiations","chat"],["/vendors","Vendors","ppl"],["/history","History","clock"],["/reports","Reports","rep"],["/settings","Settings","admin"]];
@@ -8285,6 +8285,9 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-cartpick]"
 const NegDesk=(()=>{
  const LOCAL=/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
  const cfg={API:metaAddr("negdesk-api")||(LOCAL?"http://localhost:8000":""),WEB:NEG_BASE,timeoutMs:70000,retries:2,backoffMs:[2000,5000],pollMs:6000,wakeMs:4000,targetPct:0.92};
+ /* Opened from your own machine with no Desk running there: use the Desk deployed on Render instead. */
+ if(LOCAL&&!metaAddr("negdesk-api")){const ac=new AbortController();setTimeout(()=>ac.abort(),1500);
+  fetch("http://localhost:8000/api/health",{signal:ac.signal}).then(r=>{if(!r.ok)throw new Error("down")}).catch(()=>{cfg.API="https://negotiation-api.onrender.com";cfg.WEB=NEG_BASE="https://negotiation-web.onrender.com";console.info("No Negotiation Desk on this machine: using the one on Render.")})}
  const LANG={English:"en",Hindi:"hi",Marathi:"mr",EN:"en",HI:"hi",MR:"mr",en:"en",hi:"hi",mr:"mr"};
  const UNIT={EA:"EA",EACH:"EA",PC:"EA",PCS:"EA",NOS:"EA",AU:"AU",KG:"KG",TON:"TON",T:"TON",LOT:"LOT"};
  const busy=new Set(),polling=new Set();
