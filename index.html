@@ -2651,6 +2651,7 @@ document.head.insertAdjacentHTML("beforeend",`<style id="uxcss">
 @media (max-width:560px){.ac-stats{grid-auto-flow:row}.ac-s{border-left:0;border-top:1px solid var(--line);padding:8px 0}.ac-s:first-child{border-top:0}}
 .rp-act.mine{border-left:4px solid var(--brand)}
 .rp-act.mine .actbox .btn.pri{min-height:42px;padding:0 20px}
+.rp-act.slim:has(.err-box):not(:has(textarea)){grid-template-columns:minmax(0,1fr)}.rp-act.slim .actbox{min-width:0}.rp-act.slim .actbox .err-box{max-width:none;margin:0 0 10px}
 </style>`);
 /* ---------- Shared case row (relay track) ---------- */
 function trackHTML(r){const p=pathFor(r).filter(n=>n!==4);const n=p.length;const i=p.indexOf(+r.step);const closed=r.status==="CLOSED",dec=r.status==="DECLINED";
