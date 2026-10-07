@@ -2677,20 +2677,28 @@ const emptyHTML=(t,s,ic="check")=>`<div class="empty"><div class="art">${ico(ic)
 
 /* ---------- The task table: what it is, what to do next, where it stands, when it is due ---------- */
 const TK_RIGHT='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+/* A task is New until its owner opens it: it arrived today and this role has not looked at it at this step yet. */
+let SEEN={};try{SEEN=JSON.parse(localStorage.getItem("ais.seen")||"{}")}catch(e){}
+const seenK=r=>S.user+"|"+S.role+"|"+r._id+"|"+r._arrKey;
+const isNewTask=(r,eff)=>!!eff&&r.status!=="DRAFT"&&!!r._arrKey&&!SEEN[seenK(r)];
+/* Every save stamps a request whose step, stage or status just changed: whoever holds it next sees it as New. */
+const arrSig=r=>[r.step,r.lb&&r.lb.stage||"",r.status||""].join("|");
+const ARR={};(DB.req||[]).forEach(r=>ARR[r._id]=arrSig(r));
+const save0=save;save=function(){(DB.req||[]).forEach(r=>{const k=arrSig(r);if(ARR[r._id]!==k){if(r.status!=="DRAFT")r._arrKey=k;ARR[r._id]=k;IT=null}});return save0()};
 function tkAction(r,w){
  const eff=w.task.includes(S.role)&&(S.role!=="BUYER"||!p5Owner(r)||p5Owner(r)===S.user);const dn=r.status==="IN_NEGBOT";
  const s=stepRow(r.module,r.step);
  if(eff)return{eff:true,text:dn?"Follow the negotiation with the suppliers":((typeof P5_TITLE!=="undefined"&&P5_TITLE[r.step])||s?.name||"")};
  const who=w.task.map(roleName).join(", ")||(dn?"the Negotiation Desk":"AIS");
  return{eff:false,text:dn?"Negotiation in progress":`Waiting on ${who}`}}
-function tkTr(x,view){const{r,w,tm}=x;const a=tkAction(r,w);
+function tkTr(x,view,grouped){const{r,w,tm}=x;const a=tkAction(r,w);
  const cls=tm.over?"over":tm.bucket==="today"?"today":tm.bucket==="week"?"week":"later";
  const due=tm.over?`${plural(tm.over,"day")} overdue`:tm.bucket==="today"?"Due today":`${wdOf(tm.due)} ${fmtD(tm.due)}`;
  const left=tm.over||tm.bucket==="today"?"":`${plural(wdBetween(r.entity,today(),tm.due),"working day")} left`;
  const p=pathFor(r).filter(n=>n!==4),i=p.indexOf(+r.step),pct=i>=0?Math.round((i+.5)/p.length*100):0;
  const flow=`${esc(FLOW_LBL[r.flow]||r.flow||"")}${r.module==="GP"?` \u00b7 ${esc(money(r.amount,r.currency))}`:""}`;
  return`<tr class="tk-r ${cls}${a.eff?" mine":""}" data-case="${r._id}" tabindex="0">
-  <td class="c-req"><b>${esc(r.topic)}</b><span>${esc(r.no)} \u00b7 ${flow}</span><em class="tk-inl">${stChip(caseStatus(r))}${excChip(r)}</em></td>
+  <td class="c-req"><b>${!grouped&&view==="tasks"&&isNewTask(r,a.eff)?'<mark class="tk-new">New</mark>':""}${esc(r.topic)}</b><span>${esc(r.no)} \u00b7 ${flow}</span><em class="tk-inl">${stChip(caseStatus(r))}${excChip(r)}</em></td>
   <td class="c-act ${a.eff?"do":"wait"}"><span>${a.eff?ico("ff"):ico("clock")}${esc(a.text)}</span></td>
   <td class="c-stg"><span>${esc(stageName(r.step))}</span><i class="tk-bar" aria-hidden="true"><u style="width:${pct}%"></u></i></td>
   <td class="c-sts">${stChip(caseStatus(r))}${excChip(r)}</td>
@@ -2698,9 +2706,11 @@ function tkTr(x,view){const{r,w,tm}=x;const a=tkAction(r,w);
   <td class="c-go" aria-hidden="true">${TK_RIGHT}</td></tr>`}
 function tkDraftTr(r){return`<tr class="tk-r later" data-case="${r._id}" tabindex="0"><td class="c-req"><b>${esc(r.topic||"Untitled draft")}</b><span>${esc(r.no)}</span></td><td class="c-act wait"><span>${ico("doc")}Not submitted yet</span></td><td class="c-stg"><span>Draft</span></td><td class="c-sts"></td><td class="c-due"><b>Saved ${esc(relD(r.created))}</b></td><td class="c-go" aria-hidden="true">${TK_RIGHT}</td></tr>`}
 function tkTable(list,view,o={}){
- const G=[["over","Overdue"],["today","Due today"],["week","This week"],["later","Later"]];
+ const G=[...(view==="tasks"?[["new","New"]]:[]),["over","Overdue"],["today","Due today"],["week","This week"],["later","Later"]];
+ const gk=x=>view==="tasks"&&isNewTask(x.r,tkAction(x.r,x.w).eff)?"new":(x.tm.over?"over":x.tm.bucket);
  const head=`<thead><tr><th class="c-req">Request</th><th class="c-act">Next action</th><th class="c-stg">Stage</th><th class="c-sts">Status</th><th class="c-due">Due</th><th class="c-go"></th></tr></thead>`;
- const body=o.drafts?list.map(tkDraftTr).join(""):o.groups?G.map(([k,l])=>{const L=list.filter(x=>(x.tm.over?"over":x.tm.bucket)===k);return L.length?`<tr class="tk-grp ${k}"><td colspan="6"><span>${l}</span><i>${L.length}</i></td></tr>`+L.map(x=>tkTr(x,view)).join(""):""}).join(""):list.map(x=>tkTr(x,view)).join("");
+ if(view==="tasks"&&!o.groups&&!o.drafts){const nw=x=>isNewTask(x.r,tkAction(x.r,x.w).eff);list=[...list.filter(nw),...list.filter(x=>!nw(x))]}
+ const body=o.drafts?list.map(tkDraftTr).join(""):o.groups?G.map(([k,l])=>{const L=list.filter(x=>gk(x)===k);return L.length?`<tr class="tk-grp ${k}"><td colspan="6"><span>${l}</span><i>${L.length}</i></td></tr>`+L.map(x=>tkTr(x,view,true)).join(""):""}).join(""):list.map(x=>tkTr(x,view)).join("");
  return`<div class="tk-wrap"><table class="tk-tbl">${head}<tbody>${body}</tbody></table></div>`}
 function tkGroups(list,view){return tkTable(list,view,{groups:view!=="queue"&&view!=="over"})}
 function tkRow(x,view){return tkTr(x,view)}
@@ -2734,7 +2744,7 @@ document.head.insertAdjacentHTML("beforeend",`<style id="tkcss">
 .tk-r .c-go{color:var(--muted);text-align:center;padding-left:0;padding-right:12px;opacity:.45;transition:opacity .12s}.tk-r .c-go svg{transition:transform .12s}.tk-r:hover .c-go,.tk-r:focus-visible .c-go{opacity:1;color:var(--brand)}.tk-r:hover .c-go svg,.tk-r:focus-visible .c-go svg{transform:translateX(2px)}
 .tk-grp td{padding:18px 22px 8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--panel);border-bottom:1px solid var(--line)}
 .tk-grp i{font-style:normal;margin-left:8px;min-width:20px;padding:1px 7px;border-radius:999px;background:var(--raise);color:var(--text);font-size:11.5px;display:inline-block;text-align:center}
-.tk-grp.over td{color:var(--red)}.tk-grp.today td{color:var(--amber)}
+.tk-r .c-req mark.tk-new{display:inline-flex;align-items:center;gap:5px;margin:0 8px 0 0;padding:2px 9px 2px 8px;border-radius:999px;background:color-mix(in srgb,var(--brand) 14%,var(--panel));color:var(--brand);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:1.5;vertical-align:2px;white-space:nowrap}.tk-r .c-req mark.tk-new::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--brand)}.tk-grp.new td{color:var(--brand)}.lv:has(.tk-tbl) .lv-cols{display:none}.tk-grp.over td{color:var(--red)}.tk-grp.today td{color:var(--amber)}
 .hm-foot{display:flex;align-items:center;justify-content:space-between;padding:12px 22px 16px;border-top:1px solid var(--line2,var(--line));font-size:13px;color:var(--muted)}
 @container tk (max-width:1040px){.tk-tbl .c-stg{display:none}.tk-tbl .c-req{width:38%}.tk-tbl .c-act{width:27%}.tk-tbl .c-sts{width:19%}.tk-tbl .c-due{width:16%}}
 @container tk (max-width:800px){.tk-tbl .c-sts{display:none}.tk-inl{display:block}.tk-tbl .c-req{width:48%}.tk-tbl .c-act{width:30%}.tk-tbl .c-due{width:22%}}
@@ -7435,7 +7445,7 @@ openCase=function(id){
  if(NegDesk.owes(gp))NegDesk.approveInDesk(gp);
  const html=`<div class="blk" id="ndBlk"><h3>Negotiation Desk</h3>${NegDesk.holder(gp)}</div>`;
  const a=d.querySelector("#p9Blk")||d.querySelector("#p7Blk")||d.querySelector(".dr-b > .blk");if(a)a.insertAdjacentHTML("afterend",html);else d.querySelector(".dr-b")?.insertAdjacentHTML("afterbegin",html)};
-const openCase1=openCase;openCase=function(id){return dtRun(()=>openCase1(id),{kind:"case",id})};
+const openCase1=openCase;openCase=function(id){const r=DB.req.find(x=>x._id===id);if(r&&r.status!=="DRAFT"&&S.user){SEEN[seenK(r)]=1;try{localStorage.setItem("ais.seen",JSON.stringify(SEEN))}catch(e){}IT=null}return dtRun(()=>openCase1(id),{kind:"case",id})};
 const fkOpen1=fkOpen;fkOpen=function(id){return dtRun(()=>fkOpen1(id),{kind:"fskcase",id})};
 /* Contract Registry: the contract page shows everything the contract and its negotiation carry. */
 function crDeskHTML(c,r){
@@ -8272,13 +8282,13 @@ const NegDesk=(()=>{
   if(N.state==="FAILED")msg=`<p class="fine">${esc(N.reason||"No supplier agreed.")} The Buyer continues manually at step 33.</p>`;
   if(N.state==="IN_NEGOTIATION"&&N.event_id){
    const seen=N.result&&N.result.messages&&N.result.messages.length;
-   msg+=`<p class="fine">${seen?"The bot is negotiating in the Negotiation Desk.":"The bot has not started yet. It starts when its conversation is open in the Negotiation Desk."} Open the conversation to watch it, or run it from here.</p>`}
+   msg+=`<p class="fine">${seen?"The bot is negotiating in the Negotiation Desk. Open the conversation to watch it.":"The bot has not started yet. It starts when its conversation is open in the Negotiation Desk, or you can run it from here."}</p>`}
   if(N.sync_error&&N.state!=="ERROR")msg+=`<p class="fine">Last refresh failed: ${esc(N.sync_error)}</p>`;
   const can=access(S.role,S.entity).mods.some(m=>m[0]==="nb");
   return`<div class="ndbox"><p style="margin:0 0 8px"><span class="chip ${c[0]}">${esc(c[1])}</span> ${N.round?`<span class="fine">Round ${esc(N.round)}</span>`:""}</p>
    ${row("Event",N.event_id)}${row("Case reference",N.external_ref)}${row("Sent",N.sent_at?N.sent_at+" (a snapshot of the comparison at that time)":"")}${row("Files sent",N.docs_total?`${N.docs_sent||0} of ${N.docs_total}`:"")}${row("Last refreshed",N.last_sync)}${N.state==="AGREED"?row("Deal approval in the Desk",N.desk_approved?"Approved "+N.desk_approved:"Waits for the Section Head's approval at step 34"):""}${N.approve_err?`<p class="fine" style="color:var(--err,#b3261e)">The Desk could not approve the deal: ${esc(N.approve_err)}</p>`:""}${msg}${resultHTML(N)}${contractHTML(r,N)}${N.docs_error&&N.state!=="ERROR"?`<p class="fine">Some files were not sent: ${esc(N.docs_error)}</p>`:""}
    <div class="actrow" style="margin-top:10px">${N.event_id&&can?`<button class="btn pri" type="button" data-negdesk="open" data-id="${esc(r._id)}">${ico("nb")}Open event in the Negotiation Desk</button>`:""}
-   ${N.event_id&&N.state==="IN_NEGOTIATION"&&can&&(N.sessions||[]).length?`<button class="btn" type="button" data-negdesk="conv" data-id="${esc(r._id)}">${ico("chat")}Open the conversation</button><button class="btn" type="button" data-negdesk="run" data-id="${esc(r._id)}">${ico("ff")}Run the bot now (prototype)</button>`:""}
+   ${N.event_id&&N.state==="IN_NEGOTIATION"&&can&&(N.sessions||[]).length?`${N.result&&N.result.messages&&N.result.messages.length?`<button class="btn" type="button" data-negdesk="conv" data-id="${esc(r._id)}">${ico("chat")}Open the conversation</button>`:""}<button class="btn" type="button" data-negdesk="run" data-id="${esc(r._id)}">${ico("ff")}Run the bot now (prototype)</button>`:""}
    ${N.event_id&&N.state!=="SENDING"?`<button class="btn" type="button" data-negdesk="refresh" data-id="${esc(r._id)}">${ico("ff")}Refresh status</button>`:""}
    ${N.docs_error&&N.event_id?`<button class="btn" type="button" data-negdesk="files" data-id="${esc(r._id)}">Send files again</button>`:""}
    ${N.state==="ERROR"?`<button class="btn pri" type="button" data-negdesk="retry" data-id="${esc(r._id)}">Retry send</button>`:""}</div>
