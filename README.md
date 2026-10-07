@@ -6,7 +6,7 @@ This folder is meant to live in **its own repository**, separate from the Negoti
 
 ## Run it on your machine
 
-1. Clone the repository and start it with **`start-ais.bat`** (Windows, double-click) or `./start-ais.sh` (Mac and Linux). Both serve the folder on http://localhost:8765 and open it. Do not open `index.html` directly: the browser then sends no usable origin and the Desk blocks it. By hand it is:
+1. Clone the repository and start it with **`start.bat`** (Windows, double-click) or `./start.sh` (Mac and Linux). Both serve the folder on http://localhost:8765 and open it. Do not open `index.html` directly: the browser then sends no usable origin and the Desk blocks it. By hand it is:
 
    ```bash
    python -m http.server 8765
