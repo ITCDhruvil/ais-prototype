@@ -100,7 +100,7 @@ h3{color:var(--ink)}
 .sec-h h2 .c{color:var(--muted);font-weight:500;margin-left:6px}
 
 /* Home, friendlier: icon KPI cards, full-width list with Due date and Delay columns, renewals and My requests below */
-.content .hm-top{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px 20px;margin:0 0 20px}
+.content .hm-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin:0 0 20px}
 .hm-top-t{display:grid;gap:4px;min-width:0}
 .hm-top-a{flex:none}
 .content .hm-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 20px}
@@ -2708,12 +2708,12 @@ function tkTr(x,view,grouped){const{r,w,tm}=x;const a=tkAction(r,w);
 function tkDraftTr(r){return`<tr class="tk-r later" data-case="${r._id}" tabindex="0"><td class="c-req"><b>${esc(r.topic||"Untitled draft")}</b><span>${esc(r.no)}</span></td><td class="c-act wait"><span>${ico("doc")}Not submitted yet</span></td><td class="c-stg"><span>Draft</span></td><td class="c-sts"></td><td class="c-due"><b>Saved ${esc(relD(r.created))}</b></td><td class="c-go" aria-hidden="true">${TK_RIGHT}</td></tr>`}
 function tkTable(list,view,o={}){
  const G=[...(view==="tasks"?[["new","New"]]:[]),["over","Overdue"],["today","Due today"],["week","This week"],["later","Later"]];
- const gk=x=>view==="tasks"&&isNewTask(x.r,tkAction(x.r,x.w).eff)?"new":(x.tm.over?"over":x.tm.bucket);
+ const gk=x=>!o.noNew&&view==="tasks"&&isNewTask(x.r,tkAction(x.r,x.w).eff)?"new":(x.tm.over?"over":x.tm.bucket);
  const head=`<thead><tr><th class="c-req">Request</th><th class="c-act">Next action</th><th class="c-stg">Stage</th><th class="c-sts">Status</th><th class="c-due">Due</th><th class="c-go"></th></tr></thead>`;
  if(view==="tasks"&&!o.groups&&!o.drafts){const nw=x=>isNewTask(x.r,tkAction(x.r,x.w).eff);list=[...list.filter(nw),...list.filter(x=>!nw(x))]}
  const body=o.drafts?list.map(tkDraftTr).join(""):o.groups?G.map(([k,l])=>{const L=list.filter(x=>gk(x)===k);return L.length?`<tr class="tk-grp ${k}"><td colspan="6"><span>${l}</span><i>${L.length}</i></td></tr>`+L.map(x=>tkTr(x,view,true)).join(""):""}).join(""):list.map(x=>tkTr(x,view)).join("");
  return`<div class="tk-wrap"><table class="tk-tbl">${head}<tbody>${body}</tbody></table></div>`}
-function tkGroups(list,view){return tkTable(list,view,{groups:view!=="queue"&&view!=="over"})}
+function tkGroups(list,view,noNew){return tkTable(list,view,{groups:view!=="queue"&&view!=="over",noNew})}
 function tkRow(x,view){return tkTr(x,view)}
 function tkDraft(r){return tkDraftTr(r)}
 document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.classList&&e.target.classList.contains("tk-r")){e.preventDefault();e.target.click()}});
@@ -2761,10 +2761,14 @@ document.head.insertAdjacentHTML("beforeend",`<style id="tkcss">
 </style>`);
 
 /* Home list: search and filters. They narrow the whole list, not only the rows on screen. */
-const HMF={q:"",due:"",flow:"",st:""};
+const HMF={q:"",due:"",flow:"",st:"",tab:""};
 const hmOn=()=>!!(HMF.q||HMF.due||HMF.flow||HMF.st);
+const hmTabHit=(x,k)=>!k||(k==="new"?isNewTask(x.r,tkAction(x.r,x.w).eff):(x.tm.over?"over":x.tm.bucket)===k);
+function hmTabs(base,view){const T=[["","All"],...(view==="tasks"?[["new","New"]]:[]),["over","Overdue"],["today","Due today"],["week","This week"]];
+ return`<div class="hm-tabs" role="tablist" aria-label="Show">${T.map(([k,l])=>{const n=base.filter(x=>hmTabHit(x,k)).length;return`<button type="button" role="tab" class="hm-tab${k==="new"?" nw":k==="over"?" ov":""}" data-hmt="${k}" aria-selected="${HMF.tab===k}"${n||!k?"":" data-zero"}>${l}<b>${n}</b></button>`}).join("")}</div>`}
 function hmApply(L){const q=HMF.q.trim().toLowerCase();
  return L.filter(x=>{const r=x.r;
+  if(!hmTabHit(x,HMF.tab))return false;
   if(HMF.due&&(x.tm.over?"over":x.tm.bucket)!==HMF.due)return false;
   if(HMF.flow&&r.flow!==HMF.flow)return false;
   if(HMF.st&&caseStatus(r)!==HMF.st)return false;
@@ -2772,7 +2776,7 @@ function hmApply(L){const q=HMF.q.trim().toLowerCase();
   return true})}
 function hmBody(list,view,drafts,total){
  const on=hmOn(),cap=on?30:8,shown=list.slice(0,cap);
- const rows=shown.length?(drafts?tkTable(shown,"drafts",{drafts:true}):tkGroups(shown,view))
+ const rows=shown.length?(drafts?tkTable(shown,"drafts",{drafts:true}):tkGroups(shown,view,!!HMF.tab&&HMF.tab!=="new"))
   :on?emptyHTML("Nothing matches","Change or clear the search and the filters.","search")
   :drafts?emptyHTML("No drafts","Requests you save without submitting will wait for you here.","list")
   :emptyHTML("You are all caught up","Nothing needs you right now. New tasks will show up here as soon as they reach you.");
@@ -2782,14 +2786,24 @@ function hmTools(base){
  const sel=(k,label,opts)=>`<select class="hm-f${HMF[k]?" on":""}" data-hmf="${k}" aria-label="${esc(label)}">${opts.map(([v,l])=>`<option value="${esc(v)}"${HMF[k]===v?" selected":""}>${esc(l)}</option>`).join("")}</select>`;
  const flows=[...new Set(base.map(x=>x.r.flow).filter(Boolean))],sts=[...new Set(base.map(x=>caseStatus(x.r)))];
  return`<div class="hm-tools"><label class="hm-q">${ico("search")}<input id="hmq" type="search" placeholder="Search by name, number, stage or status" value="${esc(HMF.q)}" autocomplete="off" aria-label="Search this list"></label>
-  ${sel("due","Filter by due date",[["","Any due date"],["over","Overdue"],["today","Due today"],["week","This week"],["later","Later"]])}${sel("flow","Filter by flow",[["","All flows"],...flows.map(v=>[v,FLOW_LBL[v]||v])])}${sel("st","Filter by status",[["","All statuses"],...sts.map(v=>[v,ST_LABEL[v]||v])])}
+  ${sel("flow","Filter by flow",[["","All flows"],...flows.map(v=>[v,FLOW_LBL[v]||v])])}${sel("st","Filter by status",[["","All statuses"],...sts.map(v=>[v,ST_LABEL[v]||v])])}
   <button type="button" class="hm-clear" id="hmclr"${hmOn()?"":" hidden"}>Clear</button></div>`}
 function hmRepaint(){const h=window.__hm;if(!h)return;const box=document.getElementById("hmRows");if(box)box.innerHTML=hmBody(hmApply(h.base),h.view,h.drafts,h.base.length);
- const c=document.getElementById("hmclr");if(c)c.hidden=!hmOn();document.querySelectorAll("[data-hmf]").forEach(x=>x.classList.toggle("on",!!HMF[x.dataset.hmf]))}
+ document.querySelectorAll("[data-hmt]").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.hmt===HMF.tab)));const c=document.getElementById("hmclr");if(c)c.hidden=!hmOn();document.querySelectorAll("[data-hmf]").forEach(x=>x.classList.toggle("on",!!HMF[x.dataset.hmf]))}
 document.addEventListener("input",e=>{if(e.target&&e.target.id==="hmq"){HMF.q=e.target.value;hmRepaint()}});
+document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-hmt]");if(t){HMF.tab=t.dataset.hmt;hmRepaint()}});
 document.addEventListener("change",e=>{const x=e.target.closest&&e.target.closest("[data-hmf]");if(x){HMF[x.dataset.hmf]=x.value;hmRepaint()}});
-document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#hmclr")){Object.assign(HMF,{q:"",due:"",flow:"",st:""});renderShell()}});
+document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#hmclr")){Object.assign(HMF,{q:"",due:"",flow:"",st:"",tab:""});renderShell()}});
 document.head.insertAdjacentHTML("beforeend",`<style id="hmfcss">
+.hm-ch{flex-wrap:wrap;gap:8px 16px}
+.hm-tabs{display:flex;gap:4px;margin:0 auto 0 8px;padding:3px;border-radius:999px;background:var(--raise)}
+.hm-tab{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:0;border-radius:999px;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.hm-tab b{min-width:20px;padding:0 6px;border-radius:999px;background:color-mix(in srgb,var(--muted) 16%,transparent);color:var(--text);font-size:11.5px;line-height:18px;text-align:center}
+.hm-tab:hover{color:var(--ink)}.hm-tab[data-zero]{opacity:.55}
+.hm-tab[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.hm-tab.nw[aria-selected="true"] b{background:var(--brand);color:#fff}.hm-tab.ov[aria-selected="true"] b{background:var(--red);color:#fff}
+.hm-tab:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+@media (max-width:760px){.hm-tabs{order:3;flex-basis:100%;margin:0;overflow-x:auto}}
 .hm-roles .panel{border-radius:14px;padding:18px 22px;box-shadow:none}
 .hm-roles .panel h3{font-size:16px;font-weight:700;color:var(--ink);margin:0}
 .hm-roles .panel .sub{margin:4px 0 12px;color:var(--muted);line-height:1.4}
@@ -2944,16 +2958,16 @@ function homeHTML(){const I=items(),T=I.T,D=I.D;const over=T.filter(x=>x.tm.over
   +kpi("queue","eye",ov?"All open requests":"Watching",I.Q.length,ov?"read only":"following")
   +(init?"":kpi("done","check","Finished",I.C.length,"closed or declined"));
  const baseList=drafts?D:view==="over"?T.filter(x=>x.tm.over):view==="queue"?I.Q:T;
- if(window.__hmView!==view){Object.assign(HMF,{q:"",due:"",flow:"",st:""});window.__hmView=view}
+ if(window.__hmView!==view){Object.assign(HMF,{q:"",due:"",flow:"",st:"",tab:""});window.__hmView=view}
  window.__hm={base:baseList,view,drafts};
  const list=drafts?baseList:hmApply(baseList);
  const title=drafts?"Your drafts":view==="over"?"Overdue tasks":view==="queue"?(ov?"All open requests":"Requests you follow"):"Your tasks";
  const tools=drafts?"":hmTools(baseList);
  const body=hmBody(list,view,drafts,baseList.length);
  const rp=(typeof p10!=="undefined"&&p10.rolePanelHTML?p10.rolePanelHTML:rolePanelHTML)(I);
- return`<div class="hm-top"><div class="hm-top-t"><h1>Good ${hr<12?"morning":hr<17?"afternoon":"evening"}, ${esc(roleName(S.role))}</h1>${T.length?`<p class="hm-sum">${plural(T.length,"task")} for you${over||tod?": ":"."}${[over?`<b class="over">${over} overdue</b>`:"",tod?`<b class="today">${tod} due today</b>`:""].filter(Boolean).join(", ")}${over||tod?".":""}</p>`:`<p class="hm-sum">Nothing needs you right now.</p>`}${dl?`<p class="hm-note">${ico("clock")}<span>${dl}</span></p>`:""}</div>${init?`<div class="hm-top-a"><button class="btn pri" data-hmgo="open:new">${ico("plus")}Start a request</button></div>`:""}</div>
+ return`<div class="hm-top"><div class="hm-top-t"><h1>Good ${hr<12?"morning":hr<17?"afternoon":"evening"}, ${esc(roleName(S.role))}</h1>${T.length?`<p class="hm-sum">${plural(T.length,"task")} for you${over||tod?": ":"."}${[over?`<b class="over">${over} overdue</b>`:"",tod?`<b class="today">${tod} due today</b>`:""].filter(Boolean).join(", ")}${over||tod?".":""}</p>`:`<p class="hm-sum">Nothing needs you right now.</p>`}${dl?`<p class="hm-note">${ico("clock")}<span>${dl}</span></p>`:""}</div>${hmStatusHTML()}${init?`<div class="hm-top-a"><button class="btn pri" data-hmgo="open:new">${ico("plus")}Start a request</button></div>`:""}</div>
  <div class="hm-kpis">${kpis}</div>
- <section class="hm-card hm-main" aria-labelledby="hmMain"><div class="hm-ch"><h2 id="hmMain">${title}</h2>${drafts?"":`<button class="linkbtn" data-hmall="${view}">${view==="queue"?"View all requests":view==="over"?"View all overdue":"View all tasks"}</button>`}</div>${tools}<div id="hmRows">${body}</div></section>
+ <section class="hm-card hm-main" aria-labelledby="hmMain"><div class="hm-ch"><h2 id="hmMain">${title}</h2>${drafts?"":hmTabs(baseList,view)}${drafts?"":`<button class="linkbtn" data-hmall="${view}">${view==="queue"?"View all requests":view==="over"?"View all overdue":"View all tasks"}</button>`}</div>${tools}<div id="hmRows">${body}</div></section>
 
  <div class="hm-below">${hmRenewHTML()}${init?"":rp?`<div class="hm-roles">${rp}</div>`:""}</div>`}
 function summaryBy(list){const c={};list.forEach(r=>{const s=caseStatus(r);c[s]=(c[s]||0)+1});const tot=list.length||1;const ent=Object.entries(c).sort((a,b)=>b[1]-a[1]);
@@ -7576,6 +7590,65 @@ function rpPathHTML(r){const steps=pathFor(r).filter(n=>n!==4);const st=n=>caseS
 function rpFacts(drb){const f={};drb.querySelectorAll(".dl>div").forEach(d=>{const k=d.querySelector("dt")?.textContent.trim(),v=d.querySelector("dd")?.textContent.trim();if(k&&v&&v!=="Not yet")f[k]=v});
  drb.querySelectorAll(".nb-kv>div").forEach(d=>{const k=d.querySelector("span")?.textContent.trim(),v=d.querySelector("b")?.textContent.trim();if(k&&v&&!(k in f))f[k]=v});
  drb.querySelectorAll("dl.kv>dt").forEach(t=>{const k=t.textContent.trim(),v=t.nextElementSibling?.textContent.trim();if(k&&v&&!(k in f))f[k]=v});return f}
+/* Home top bar: the request that is in process for you right now, or, when nothing is, the last one. */
+function hmStatusHTML(){const I=items();const mine=I.T[0],watch=I.Q[0],last=I.C[0];
+ const pick=mine?{r:mine.r,k:"Needs you now"}:watch?{r:watch.r,k:"In process"}:last?{r:last,k:"No request in process. The last one"}:null;
+ if(!pick)return`<aside class="hm-st" aria-label="Current request"><span class="hm-st-k">Current request</span><b>No request in process</b><small>New requests will show here.</small></aside>`;
+ const r=pick.r,flow=typeof rpFlowHTML==="function"?rpFlowHTML(r).replace('<aside class="rp-flow','<div class="rp-flow').replace("</aside>","</div>"):"";
+ return`<aside class="hm-st${isOpen(r)?"":" idle"}" aria-label="Current request"><div class="hm-st-h"><span class="hm-st-k">${esc(pick.k)}</span><button type="button" class="hm-st-t" data-case="${esc(r._id)}"><b>${esc(r.topic)}</b><small>${esc(r.no)}</small></button>${(()=>{if(!isOpen(r))return"";const p=pathFor(r).filter(n=>n!==4),i=p.indexOf(+r.step);return i>=0?`<span class="hm-st-n">Step ${i+1} of ${p.length}</span>`:""})()}</div>${flow}</aside>`}
+document.head.insertAdjacentHTML("beforeend",`<style id="hmstcss">
+.hm-st{margin-left:auto;width:min(640px,100%);display:grid;gap:6px;border:1px solid var(--line);border-radius:14px;padding:10px 18px;background:var(--panel)}
+.hm-st-h{display:flex;align-items:baseline;gap:10px 14px;flex-wrap:wrap;min-width:0}
+.hm-st-n{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,var(--panel));padding:2px 10px;border-radius:999px;white-space:nowrap}
+.hm-st-k{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brand);white-space:nowrap}
+.hm-st.idle .hm-st-k{color:var(--muted)}
+.hm-st-t{display:flex;align-items:baseline;gap:8px;min-width:0;text-align:left;border:0;background:none;padding:0;cursor:pointer;color:inherit;font:inherit}
+.hm-st-t b{font-size:14px;color:var(--ink);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.hm-st-t:hover b{color:var(--brand)}
+.hm-st-t small,.hm-st>small{font-size:12px;color:var(--muted);white-space:nowrap}
+.hm-st .rp-flow{width:auto;border:0;border-top:1px solid var(--line2,var(--line));border-radius:0;padding:8px 0 0;background:none}
+@media (max-width:760px){.hm-st{margin-left:0;width:100%}}
+</style>`);
+/* A small "where is it" card at the top right of a request: the step before, the step now with who holds it, and the step after. */
+function rpFlowHTML(r){if(!r||r.module!=="GP")return"";
+ if(!isOpen(r)){const h=(r.hist||[]).slice(-1)[0];const why=r.status==="DECLINED"?"Declined":"Closed";
+  const when=r.closed||(h&&h.d)||"";
+  return`<aside class="rp-flow idle" aria-label="Request status"><ul>
+  <li class="now"><span class="k">Status</span><span class="v"><b>No process running</b><small>${why}${when?" on "+fmtD(when):""}. Nothing is waiting on anyone.</small></span></li>
+  ${h?`<li class="prev"><span class="k">Last step</span><span class="v"><b>${esc(h.action||"")}</b>${h.by?`<small>by ${esc(h.by)}${h.d?", "+esc(fmtD(h.d)):""}</small>`:""}</span></li>`:""}</ul></aside>`}
+ const steps=pathFor(r).filter(n=>n!==4),i=steps.indexOf(+r.step);if(i<0)return"";
+ const nm=n=>(typeof P5_TITLE!=="undefined"&&P5_TITLE[n])||stepRow(r.module,n)?.name||"Step "+n;
+ const who=n=>{const w=whoAt(r,n);const t=w.task.map(roleName);return t.length?t.join(", "):"AIS"};
+ const nbNow=r.status==="IN_NEGBOT";
+ const prev=i>0?steps[i-1]:null,next=i<steps.length-1?steps[i+1]:null;
+ const last=[...(r.hist||[])].reverse().find(h=>prev!=null&&+h.step===prev);
+ const row=(k,cls,t,sub)=>`<li class="${cls}"><span class="k">${k}</span><span class="v"><b>${esc(t)}</b>${sub?`<small>${esc(sub)}</small>`:""}</span></li>`;
+ return`<aside class="rp-flow" aria-label="Request status"><ul>
+  ${prev!=null?row("Previous","prev",nm(prev),last&&last.by?"by "+last.by:""):""}
+  ${row("Now","now",nbNow?"Negotiation with the suppliers":nm(+r.step),nbNow?"Negotiation Desk · Buyer follows":who(+r.step))}
+  ${next!=null?row("Next","next",nm(next),who(next)):row("Next","next","Closed","")}</ul></aside>`}
+document.head.insertAdjacentHTML("beforeend",`<style id="rpflowcss">
+.rp-flow{flex:none;width:min(560px,100%);border:1px solid var(--line);border-radius:14px;padding:10px 16px;background:var(--panel)}
+.rp-flow ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0 20px}
+.rp-flow li{position:relative;display:grid;gap:1px;align-content:start;font-size:12.5px;min-width:0;padding-top:15px}
+.rp-flow li::before{content:"";position:absolute;left:0;top:1px;width:9px;height:9px;border-radius:50%;box-sizing:border-box;border:2px solid var(--line);background:var(--panel)}
+.rp-flow li::after{content:"";position:absolute;left:15px;right:-14px;top:5px;height:2px;border-radius:2px;background:var(--line)}
+.rp-flow li:last-child::after{display:none}
+.rp-flow li.prev::before{border-color:var(--brand);background:var(--brand)}
+.rp-flow li.prev::after{background:var(--brand)}
+.rp-flow li.now::before{border-color:var(--brand);background:var(--brand);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand) 22%,transparent)}
+.rp-flow .k{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.rp-flow .v{min-width:0;display:grid;gap:3px;justify-items:start}
+.rp-flow b{display:block;font-weight:600;color:var(--text);line-height:1.3;overflow-wrap:anywhere}
+.rp-flow small{display:block;color:var(--muted);font-size:11.5px;line-height:1.3}
+.rp-flow li.now .k{color:var(--brand)}.rp-flow li.now b{color:var(--ink);font-weight:700}
+.rp-flow li.now small{display:inline-block;padding:1px 9px;border-radius:999px;background:color-mix(in srgb,var(--brand) 12%,var(--panel));color:var(--brand);font-weight:600}
+.rp-flow li.prev b,.rp-flow li.next b{font-weight:500;color:var(--muted)}
+.rp-flow.idle li::before,.rp-flow.idle li::after{display:none}.rp-flow.idle li{padding-top:0}
+@media (prefers-reduced-motion:no-preference){.rp-flow li.now::before{animation:rpPulse 2.4s ease-out infinite}}
+@keyframes rpPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--brand) 38%,transparent)}70%,100%{box-shadow:0 0 0 7px transparent}}
+@media (max-width:1100px){.rp-flow{flex-basis:100%;width:auto}}
+@media (max-width:560px){.rp-flow ul{grid-template-columns:1fr;gap:10px}.rp-flow li::after{display:none}}
+</style>`);
 function rpBuild(pg,desc){const drb=pg.querySelector(".dr-b"),drh=pg.querySelector(".dr-h");if(!drb||!drh)return;
  const r=desc.kind==="case"?DB.req.find(x=>x._id===desc.id):null;if(desc.kind==="case"&&(!r||r.module!=="GP"))return;
  const isF=desc.kind==="fskcase";const kids=sel=>[...drb.children].filter(c=>c.matches(sel));const h3=b=>b.querySelector(":scope>h3")?.textContent.trim()||"";
@@ -7594,6 +7667,7 @@ function rpBuild(pg,desc){const drb=pg.querySelector(".dr-b"),drh=pg.querySelect
  hl.innerHTML=`<div class="rp-hl-t"><span class="rp-ico" aria-hidden="true">${ico(r?"gp":isF?"fsk":"contract")}</span><div class="rp-hl-h"><span class="rp-obj">${r?"Request":isF?"FSK request":"Contract"}</span><h1 class="rp-title">${esc(topic?.textContent||num?.textContent||"")}</h1><div class="rp-id"><b>${esc(isF?(facts["Presentation no."]||""):(num?.textContent||""))}</b></div></div><div class="rp-hl-a"></div></div>
  ${keys.length?`<dl class="rp-keys">${keys.map(([k,v,c])=>`<div><dt>${esc(k)}</dt><dd class="${c||""}">${esc(v)}</dd></div>`).join("")}</dl>`:""}`;
  chips.forEach(c=>hl.querySelector(".rp-id").appendChild(c));
+ if(r){const fl=rpFlowHTML(r);if(fl)hl.querySelector(".rp-hl-h").insertAdjacentHTML("afterend",fl)}
  if(meta){meta.className="rp-sub";hl.querySelector(".rp-hl-h").appendChild(meta)}
  const actions=hl.querySelector(".rp-hl-a");["p10Sb","p10Ask","crAsk"].forEach(id=>{const b=pg.querySelector("#"+id);if(b)actions.appendChild(b)});
  if(!actions.children.length)actions.remove();
