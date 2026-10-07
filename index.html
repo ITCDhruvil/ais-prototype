@@ -2714,39 +2714,137 @@ document.head.insertAdjacentHTML("beforeend",`<style id="tkcss">
 .tk-wrap{overflow-x:auto;container-type:inline-size;container-name:tk}
 .tk-inl{display:none;font-style:normal;margin-top:6px}
 .tk-tbl{width:100%;border-collapse:collapse;border-spacing:0;table-layout:fixed;font-size:14px}
-.tk-tbl th{position:sticky;top:0;text-align:left;padding:10px 14px;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--raise);border-bottom:1px solid var(--line);white-space:nowrap}
+.tk-tbl th{position:sticky;top:0;text-align:left;padding:12px 14px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);background:var(--panel);border-bottom:1px solid var(--line);white-space:nowrap}.tk-tbl th:first-child{padding-left:22px}
 .tk-tbl .c-req{width:30%}.tk-tbl .c-act{width:25%}.tk-tbl .c-stg{width:14%}.tk-tbl .c-sts{width:14%}.tk-tbl .c-due{width:13%}.tk-tbl .c-go{width:44px}
-.tk-tbl td{padding:14px;border-bottom:1px solid var(--line);vertical-align:middle;min-width:0;overflow:hidden;white-space:normal}.tk-tbl td *{white-space:normal}.tk-tbl .c-sts .st,.tk-tbl .c-due b{white-space:nowrap}
-.tk-r{cursor:pointer;transition:background .12s}.tk-r:hover,.tk-r:focus-visible{background:var(--raise);outline:none}
-.tk-r td:first-child{box-shadow:inset 4px 0 0 var(--line);padding-left:18px}
-.tk-r.mine td:first-child{box-shadow:inset 4px 0 0 var(--brand)}.tk-r.over td:first-child{box-shadow:inset 4px 0 0 var(--red)}.tk-r.today td:first-child{box-shadow:inset 4px 0 0 var(--amber)}
+.tk-tbl td{padding:17px 14px;border-bottom:1px solid var(--line2,var(--line));vertical-align:middle;min-width:0;overflow:hidden;white-space:normal}.tk-tbl td *{white-space:normal}.tk-tbl .c-sts .st,.tk-tbl .c-due b{white-space:nowrap}
+.tk-r{cursor:pointer;transition:background .12s}.tk-r:hover{background:color-mix(in srgb,var(--raise) 65%,var(--panel))}.tk-r:focus-visible{background:var(--raise);outline:2px solid var(--brand);outline-offset:-2px}
+.tk-r td:first-child{padding-left:22px}
+
 .tk-r:last-child td{border-bottom:0}
-.tk-r .c-req{display:table-cell}.tk-r .c-req b{display:block;font-size:15px;color:var(--ink);line-height:1.3;overflow-wrap:anywhere}
-.tk-r .c-req span{display:block;margin-top:3px;font-size:12.5px;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
+.tk-r .c-req{display:table-cell}.tk-r .c-req b{display:block;font-size:15px;font-weight:650;color:var(--ink);line-height:1.3;overflow-wrap:anywhere}
+.tk-r .c-req span{display:block;margin-top:4px;font-size:12.5px;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
 .tk-r .c-act span{display:flex;align-items:flex-start;gap:7px;font-weight:600;line-height:1.35;overflow-wrap:anywhere}.tk-r .c-act svg{margin-top:2px}.tk-r .c-act svg{width:15px;height:15px;flex:none}
-.tk-r .c-act.do{color:var(--brand)}.tk-r .c-act.wait{color:var(--muted)}.tk-r .c-act.wait span{font-weight:500}
+.tk-r .c-act.do{color:var(--brand)}.tk-r .c-act.wait{color:var(--muted)}.tk-r .c-act.wait span{font-weight:500}.tk-r .c-act.wait svg{opacity:.7}
 .tk-r .c-stg span{display:block;font-size:13.5px;color:var(--text);line-height:1.3;overflow-wrap:anywhere}
-.tk-bar{display:block;height:4px;border-radius:999px;background:var(--line);margin-top:7px;overflow:hidden}.tk-bar u{display:block;height:100%;background:var(--brand);border-radius:inherit;text-decoration:none}
+.tk-bar{display:block;height:3px;border-radius:999px;background:var(--line);margin-top:8px;overflow:hidden}.tk-bar u{display:block;height:100%;background:var(--brand);border-radius:inherit;text-decoration:none}
 .tk-r .c-sts{white-space:normal}.tk-r .c-sts .st{margin:2px 4px 2px 0}
 .tk-r .c-due b{display:inline-block;padding:4px 11px;border-radius:999px;background:var(--raise);font-size:13px;font-weight:700;color:var(--text);white-space:normal;text-align:center}
 .tk-r .c-due small{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
 .tk-r.over .c-due b{background:color-mix(in srgb,var(--red) 14%,var(--panel));color:var(--red)}.tk-r.today .c-due b{background:color-mix(in srgb,var(--amber) 16%,var(--panel));color:var(--amber)}
-.tk-r .c-go{color:var(--muted);text-align:center;padding-left:0;padding-right:10px}.tk-r:hover .c-go{color:var(--brand)}
-.tk-grp td{padding:16px 18px 8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--panel);border-bottom:1px solid var(--line)}
+.tk-r .c-go{color:var(--muted);text-align:center;padding-left:0;padding-right:12px;opacity:.45;transition:opacity .12s}.tk-r .c-go svg{transition:transform .12s}.tk-r:hover .c-go,.tk-r:focus-visible .c-go{opacity:1;color:var(--brand)}.tk-r:hover .c-go svg,.tk-r:focus-visible .c-go svg{transform:translateX(2px)}
+.tk-grp td{padding:18px 22px 8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--panel);border-bottom:1px solid var(--line)}
 .tk-grp i{font-style:normal;margin-left:8px;min-width:20px;padding:1px 7px;border-radius:999px;background:var(--raise);color:var(--text);font-size:11.5px;display:inline-block;text-align:center}
 .tk-grp.over td{color:var(--red)}.tk-grp.today td{color:var(--amber)}
-.hm-foot{display:flex;align-items:center;justify-content:space-between;padding:10px 20px 14px}
+.hm-foot{display:flex;align-items:center;justify-content:space-between;padding:12px 22px 16px;border-top:1px solid var(--line2,var(--line));font-size:13px;color:var(--muted)}
 @container tk (max-width:1040px){.tk-tbl .c-stg{display:none}.tk-tbl .c-req{width:38%}.tk-tbl .c-act{width:27%}.tk-tbl .c-sts{width:19%}.tk-tbl .c-due{width:16%}}
 @container tk (max-width:800px){.tk-tbl .c-sts{display:none}.tk-inl{display:block}.tk-tbl .c-req{width:48%}.tk-tbl .c-act{width:30%}.tk-tbl .c-due{width:22%}}
 @container tk (max-width:600px){
  .tk-tbl,.tk-tbl tbody,.tk-tbl tr,.tk-tbl td{display:block}.tk-tbl thead{display:none}.tk-wrap{overflow:visible}
  .tk-tbl .c-sts{display:block;padding-top:4px}.tk-inl{display:none}.tk-r .c-sts .st{white-space:nowrap}
- .tk-r{position:relative;padding:12px 40px 12px 18px;border-bottom:1px solid var(--line);box-shadow:inset 4px 0 0 var(--line)}
- .tk-r.mine{box-shadow:inset 4px 0 0 var(--brand)}.tk-r.over{box-shadow:inset 4px 0 0 var(--red)}.tk-r.today{box-shadow:inset 4px 0 0 var(--amber)}
- .tk-r td,.tk-tbl .c-req,.tk-tbl .c-act,.tk-tbl .c-due{width:auto;padding:3px 0;border:0}
+ .tk-r{position:relative;padding:14px 40px 14px 20px;border-bottom:1px solid var(--line)}
+
+ .tk-r td,.tk-tbl .c-req,.tk-tbl .c-act,.tk-tbl .c-due,.tk-tbl .c-sts,.tk-tbl .c-stg{width:auto;padding:3px 0;border:0}
  .tk-r td:first-child,.tk-r.mine td:first-child,.tk-r.over td:first-child,.tk-r.today td:first-child{box-shadow:none;padding-left:0}
  .tk-r .c-go{position:absolute;right:10px;top:50%;transform:translateY(-50%);padding:0;width:auto}.tk-r .c-req b{white-space:normal}.tk-r .c-stg{display:none}
  .tk-grp td{padding:14px 18px 6px;display:block}}
+</style>`);
+
+/* Home list: search and filters. They narrow the whole list, not only the rows on screen. */
+const HMF={q:"",due:"",flow:"",st:""};
+const hmOn=()=>!!(HMF.q||HMF.due||HMF.flow||HMF.st);
+function hmApply(L){const q=HMF.q.trim().toLowerCase();
+ return L.filter(x=>{const r=x.r;
+  if(HMF.due&&(x.tm.over?"over":x.tm.bucket)!==HMF.due)return false;
+  if(HMF.flow&&r.flow!==HMF.flow)return false;
+  if(HMF.st&&caseStatus(r)!==HMF.st)return false;
+  if(q){const hay=[r.no,r.topic,r.sc,r.globe,FLOW_LBL[r.flow],stageName(r.step),ST_LABEL[caseStatus(r)],tkAction(r,x.w).text].join(" ").toLowerCase();if(!q.split(/\s+/).every(t=>hay.includes(t)))return false}
+  return true})}
+function hmBody(list,view,drafts,total){
+ const on=hmOn(),cap=on?30:8,shown=list.slice(0,cap);
+ const rows=shown.length?(drafts?tkTable(shown,"drafts",{drafts:true}):tkGroups(shown,view))
+  :on?emptyHTML("Nothing matches","Change or clear the search and the filters.","search")
+  :drafts?emptyHTML("No drafts","Requests you save without submitting will wait for you here.","list")
+  :emptyHTML("You are all caught up","Nothing needs you right now. New tasks will show up here as soon as they reach you.");
+ const more=(on||list.length>cap)&&shown.length?`<div class="hm-foot"><span>${on?`${plural(list.length,"request")} match${list.length===1?"es":""}`:`Showing ${cap} of ${list.length}`}${on&&list.length>cap?`, first ${cap} shown`:""}</span>${drafts?"":`<button class="linkbtn" data-hmall="${view}">Show all ${total}</button>`}</div>`:"";
+ return rows+more}
+function hmTools(base){
+ const sel=(k,label,opts)=>`<select class="hm-f${HMF[k]?" on":""}" data-hmf="${k}" aria-label="${esc(label)}">${opts.map(([v,l])=>`<option value="${esc(v)}"${HMF[k]===v?" selected":""}>${esc(l)}</option>`).join("")}</select>`;
+ const flows=[...new Set(base.map(x=>x.r.flow).filter(Boolean))],sts=[...new Set(base.map(x=>caseStatus(x.r)))];
+ return`<div class="hm-tools"><label class="hm-q">${ico("search")}<input id="hmq" type="search" placeholder="Search by name, number, stage or status" value="${esc(HMF.q)}" autocomplete="off" aria-label="Search this list"></label>
+  ${sel("due","Filter by due date",[["","Any due date"],["over","Overdue"],["today","Due today"],["week","This week"],["later","Later"]])}${sel("flow","Filter by flow",[["","All flows"],...flows.map(v=>[v,FLOW_LBL[v]||v])])}${sel("st","Filter by status",[["","All statuses"],...sts.map(v=>[v,ST_LABEL[v]||v])])}
+  <button type="button" class="hm-clear" id="hmclr"${hmOn()?"":" hidden"}>Clear</button></div>`}
+function hmRepaint(){const h=window.__hm;if(!h)return;const box=document.getElementById("hmRows");if(box)box.innerHTML=hmBody(hmApply(h.base),h.view,h.drafts,h.base.length);
+ const c=document.getElementById("hmclr");if(c)c.hidden=!hmOn();document.querySelectorAll("[data-hmf]").forEach(x=>x.classList.toggle("on",!!HMF[x.dataset.hmf]))}
+document.addEventListener("input",e=>{if(e.target&&e.target.id==="hmq"){HMF.q=e.target.value;hmRepaint()}});
+document.addEventListener("change",e=>{const x=e.target.closest&&e.target.closest("[data-hmf]");if(x){HMF[x.dataset.hmf]=x.value;hmRepaint()}});
+document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#hmclr")){Object.assign(HMF,{q:"",due:"",flow:"",st:""});renderShell()}});
+document.head.insertAdjacentHTML("beforeend",`<style id="hmfcss">
+.hm-roles .panel{border-radius:14px;padding:18px 22px;box-shadow:none}
+.hm-roles .panel h3{font-size:16px;font-weight:700;color:var(--ink);margin:0}
+.hm-roles .panel .sub{margin:4px 0 12px;color:var(--muted);line-height:1.4}
+.hm-roles .bars{gap:12px;margin-top:4px}
+.hm-roles .bar-r{grid-template-columns:minmax(80px,124px) minmax(0,1fr) 28px;font-size:13.5px}
+.hm-roles .bar-r .tr{height:6px}.hm-roles .bar-r b{font-variant-numeric:tabular-nums}
+.hm-roles .legend{margin-top:10px}
+.hm-roles .mini{margin-top:4px}
+.hm-roles .mini li{border-top:1px solid var(--line2,var(--line))}.hm-roles .mini li:first-child{border-top:0}
+.hm-roles .mini button{width:calc(100% + 12px);margin:0 -6px;padding:11px 6px;align-items:center;border-radius:8px;cursor:pointer;color:inherit;font:inherit}
+.hm-roles .mini button:hover{background:var(--raise)}
+.hm-roles .mini .t{font-size:13.5px}.hm-roles .mini .t b{font-weight:650;color:var(--ink)}
+.hm-roles .mini .m{font-size:12.5px;color:var(--text);font-variant-numeric:tabular-nums}
+.hm-roles .mini button::after{content:"";flex:none;width:16px;height:16px;opacity:.4;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/svg%3E") center/contain no-repeat}
+.hm-roles .mini button:hover::after{opacity:1;color:var(--brand)}
+.hm-below{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(300px,1fr);gap:16px;align-items:stretch;margin-top:16px}
+.hm-below:not(:has(.hm-roles)){grid-template-columns:minmax(0,1fr)}
+.hm-below .hm-ren-card{margin-top:0}
+.content .hm-below .hm-ren-card{margin:0;display:flex;flex-direction:column}.hm-below .hm-ren-card .rn-wrap{flex:1}
+.hm-below .hm-roles{display:flex;flex-direction:column;gap:16px;margin-top:0}.hm-below .hm-roles>.panel{margin:0}.hm-below .hm-roles>.panel:last-child{flex:1}
+@media (max-width:1180px){.hm-below{grid-template-columns:minmax(0,1fr)}.hm-below .hm-roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}.hm-below .hm-roles>.panel:last-child{flex:none}}
+.hm-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 22px 14px;border-bottom:1px solid var(--line2,var(--line))}
+.hm-q{position:relative;flex:1 1 280px;min-width:200px;display:flex;align-items:center}.hm-q svg{position:absolute;left:12px;width:16px;height:16px;color:var(--muted);pointer-events:none}
+.hm-q input{width:100%;height:40px;padding:0 12px 0 36px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:inherit;font:inherit;font-size:14px}.hm-q input:focus{border-color:var(--brand);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 18%,transparent)}
+.hm-f{height:40px;padding:0 32px 0 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:inherit;font-size:13.5px;cursor:pointer;max-width:100%}.hm-f:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.hm-f.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:600}
+.hm-clear{height:40px;padding:0 12px;border:0;background:none;color:var(--brand);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;border-radius:8px}.hm-clear:hover{background:var(--brand-soft)}.hm-clear[hidden]{display:none}
+@media (max-width:640px){.hm-tools{padding:12px 16px}.hm-q{flex-basis:100%}.hm-f{flex:1 1 calc(50% - 6px)}}
+</style>`);
+
+/* Setup health: what needs fixing first, then how complete the masters are. */
+function setupHealthHTML(){
+ const c={seed:0,client:0,other:0};MASTERS.forEach(m=>{const st=statusOf(m);if(st==="seed")c.seed++;else if(st==="client")c.client++;else c.other++});
+ const g=visGaps();const noTat=DB.step.filter(x=>x._active&&x.operational&&x.module==="GP"&&x.tat_days==="").length;
+ const rules=DB.reminder.filter(r=>r._active).length,total=MASTERS.length||1;
+ const OK='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>';
+ const WARN='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>';
+ const items=[
+  {k:"vis",bad:g.length>0,t:"Who does each step",d:g.length?`${plural(g.length,"step")} ${g.length===1?"has":"have"} nobody assigned to do it.`:"Every step has someone assigned.",go:g.length?"Assign":"Review"},
+  {k:"step",bad:noTat>0,t:"How long each step should take",d:noTat?`${plural(noTat,"step")} ${noTat===1?"has":"have"} no standard time. AIS assumes ${ASSUMED_TAT} working days for ${noTat===1?"it":"them"}.`:"Every step has a standard time.",go:noTat?"Set times":"Review"},
+  {k:"reminder",bad:false,t:"Reminders",d:`${plural(rules,"reminder rule")} active.`,go:"Review"}];
+ const need=items.filter(i=>i.bad).length+(c.client?1:0);
+ const seg=[["ok","Loaded",c.seed,"Master data is in place."],["wait","Needs client input",c.client,"The client still has to supply these values."],["dm","Demo or synced data",c.other,"Sample data, or data synced from another system."]];
+ return`<div class="panel sh"><div class="sh-h"><h3>Setup health</h3><span class="st ${need?"st-w":"st-o"}">${need?`${plural(need,"thing")} to fix`:"All set"}</span></div>
+  <p class="sub">Task lists, due dates and reminders are built from this setup.</p>
+  <ul class="sh-l">${items.map(i=>`<li><button type="button" data-admin="${i.k}"><span class="sh-i ${i.bad?"bad":"ok"}" aria-hidden="true">${i.bad?WARN:OK}</span><span class="sh-t"><b>${i.t}</b><small>${i.d}</small></span><span class="sh-go">${i.go}${typeof TK_RIGHT!=="undefined"?TK_RIGHT:""}</span></button></li>`).join("")}</ul>
+  <div class="sh-m"><div class="sh-mh"><b>Master data</b><span>${plural(MASTERS.length,"master")}</span></div>
+   <div class="sh-bar" role="img" aria-label="${seg.map(x=>x[2]+" "+x[1]).join(", ")}">${seg.map(x=>x[2]?`<i class="${x[0]}" style="flex:${x[2]}" title="${esc(x[1])}: ${x[2]}. ${esc(x[3])}"></i>`:"").join("")}</div>
+   <ul class="sh-lg">${seg.map(x=>`<li title="${esc(x[3])}"><i class="${x[0]}"></i><span>${x[1]}</span><b>${x[2]}</b></li>`).join("")}</ul></div></div>`}
+document.head.insertAdjacentHTML("beforeend",`<style id="shcss">
+.sh-h{display:flex;align-items:center;justify-content:space-between;gap:10px}.sh-h h3{margin:0}
+.sh .sub{margin:4px 0 6px}
+.sh-l{list-style:none;margin:8px 0 0;padding:0;display:grid}
+.sh-l li{border-top:1px solid var(--line2,var(--line))}
+.sh-l button{width:100%;display:flex;align-items:center;gap:12px;padding:10px 6px;margin:0 -6px;border:0;background:none;text-align:left;border-radius:8px;cursor:pointer;color:inherit;font:inherit;width:calc(100% + 12px)}
+.sh-l button:hover{background:var(--raise)}
+.sh-i{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center}
+.sh-i.ok{background:color-mix(in srgb,var(--brand) 14%,var(--panel));color:var(--brand)}.sh-i.bad{background:color-mix(in srgb,var(--amber) 18%,var(--panel));color:var(--amber)}
+.sh-t{flex:1;min-width:0;display:grid;gap:1px}.sh-t b{font-size:14px;font-weight:650;color:var(--ink)}.sh-t small{font-size:12.5px;color:var(--muted);line-height:1.35}
+.sh-go{flex:none;display:inline-flex;align-items:center;gap:2px;font-size:12.5px;font-weight:600;color:var(--brand)}.sh-go svg{width:16px;height:16px}
+.sh-m{margin-top:6px;padding-top:14px;border-top:1px solid var(--line2,var(--line))}
+.sh-mh{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px}.sh-mh b{color:var(--ink)}.sh-mh span{color:var(--muted)}
+.sh-bar{display:flex;gap:3px;height:8px;border-radius:999px;overflow:hidden}.sh-bar i{display:block;border-radius:999px;min-width:6px}
+.sh-bar i.ok,.sh-lg i.ok{background:var(--brand)}.sh-bar i.wait,.sh-lg i.wait{background:var(--amber)}.sh-bar i.dm,.sh-lg i.dm{background:var(--muted);opacity:.55}
+.sh-lg{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px}
+.sh-lg li{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)}.sh-lg li i{width:8px;height:8px;border-radius:50%;flex:none}.sh-lg li span{flex:none}.sh-lg li b{color:var(--ink);font-variant-numeric:tabular-nums}
 </style>`);
 /* ---------- Home (role based) ---------- */
 function digestInfo(){const I=items();const n=I.T.filter(x=>rulesFor(x.r).some(o=>o.x.is_consolidated&&o.to===S.role)).length;const df=calDef(S.entity);const eod=df.eod_time||"18:00";const t=today();
@@ -2765,10 +2863,49 @@ function hmDraftRow(r){return`<button class="hm-row" data-case="${r._id}"><span 
   <span class="c-due"><b>\u2014</b><small>Saved ${esc(relD(r.created))}</small></span>
   <span class="c-dl"><span class="muted">\u2014</span></span>
   <span class="c-st">${stChip("DRAFT")}</span></button>`}
+/* Upcoming renewals: a short table of the contracts that end soon or have already ended without a renewal. */
+function rnRel(end){const n=Math.round((new Date(end+"T00:00:00")-new Date(today()+"T00:00:00"))/864e5);const a=Math.abs(n);
+ const t=a<=45?plural(a,"day"):a<365?plural(Math.round(a/30.4),"month"):plural(Math.round(a/36.5)/10,"year");
+ return n<0?`${t} ago`:n===0?"today":`in ${t}`}
 function hmRenewHTML(){if(typeof crScope!=="function"||!access(S.role,S.entity).mods.some(m=>m[0]==="gp"))return"";
  const L=crScope().filter(c=>["EXPIRING","EXPIRED"].includes(crState(c))&&(S.role!=="INITIATOR"||crReq(c)?.initiator===S.user)).sort((a,b)=>a.end_date.localeCompare(b.end_date));
- return`<section class="hm-card hm-ren-card" aria-labelledby="hmRn"><div class="hm-ch"><h2 id="hmRn">Upcoming renewals</h2><button class="linkbtn" data-open="contracts">Contract Registry</button></div>
- ${L.length?`<div class="hm-ren-l">${L.slice(0,6).map(c=>`<button class="hm-ren" data-ctr="${esc(c.contract_id)}"><span class="t"><b>${esc(c.contract_id)}</b> ${esc(crReq(c)?.topic||"")}</span><span class="m${crState(c)==="EXPIRED"?" bad":""}">${crState(c)==="EXPIRED"?"Expired "+esc(fmtD(c.end_date)):"Ends "+esc(fmtD(c.end_date))}</span></button>`).join("")}</div>${L.length>6?`<p class="fine">${L.length-6} more in the Contract Registry.</p>`:""}`:`<p class="fine" style="margin:0">No contract is close to its end date.</p>`}</section>`}
+ const cap=6;
+ const row=c=>{const st=crState(c),gone=st==="EXPIRED",ren=typeof crRenewal==="function"?crRenewal(c):null;
+  const chip=ren?`<span class="st st-p">Renewal requested</span>`:gone?`<span class="st st-r">Expired</span>`:`<span class="st st-w">Ending soon</span>`;
+  return`<tr class="rn-r${gone?" gone":""}" data-ctr="${esc(c.contract_id)}" tabindex="0">
+   <td class="c-ct"><b>${esc(crReq(c)?.topic||c.contract_number)}</b><span>${esc(c.contract_id)}</span></td>
+   <td class="c-sp">${esc(c.supplier_name||"-")}</td>
+   <td class="c-ty">${esc(INC10.ctype[c.contract_type]||c.contract_type||"")}</td>
+   <td class="c-va">${c.value_inr?esc(inr(c.value_inr)):"-"}</td>
+   <td class="c-en"><b>${esc(fmtD(c.end_date))}</b><small>${esc(rnRel(c.end_date))}</small></td>
+   <td class="c-st">${chip}</td>
+   <td class="c-go" aria-hidden="true">${typeof TK_RIGHT!=="undefined"?TK_RIGHT:""}</td></tr>`};
+ const table=`<div class="rn-wrap"><table class="rn-tbl"><thead><tr><th class="c-ct">Contract</th><th class="c-sp">Supplier</th><th class="c-ty">Type</th><th class="c-va">Value</th><th class="c-en">Ends</th><th class="c-st">Status</th><th class="c-go"></th></tr></thead><tbody>${L.slice(0,cap).map(row).join("")}</tbody></table></div>`;
+ return`<section class="hm-card hm-ren-card" aria-labelledby="hmRn"><div class="hm-ch"><h2 id="hmRn">Upcoming renewals${L.length?` <span class="rn-n">${L.length}</span>`:""}</h2><button class="linkbtn" data-open="contracts">${L.length>cap?`View all ${L.length} in the Contract Registry`:"Contract Registry"}</button></div>
+ ${L.length?table:`<p class="fine" style="margin:0;padding:6px 20px 18px">No contract is close to its end date.</p>`}</section>`}
+document.head.insertAdjacentHTML("beforeend",`<style id="rncss">
+.rn-n{display:inline-block;margin-left:8px;min-width:22px;padding:1px 8px;border-radius:999px;background:var(--raise);color:var(--text);font-size:12px;font-weight:700;text-align:center;vertical-align:2px}
+.rn-wrap{overflow-x:auto;container-type:inline-size;container-name:rn}
+.rn-tbl{width:100%;border-collapse:collapse;table-layout:fixed;font-size:14px}
+.rn-tbl th{text-align:left;padding:10px 14px;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--raise);border-top:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap}
+.rn-tbl td{padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:middle;min-width:0;overflow:hidden;white-space:normal;overflow-wrap:anywhere}
+.rn-tbl .c-ct{width:24%}.rn-tbl .c-sp{width:17%}.rn-tbl .c-ty{width:17%}.rn-tbl .c-va{width:12%;text-align:right}.rn-tbl .c-en{width:12%}.rn-tbl .c-st{width:13%}.rn-tbl .c-go{width:44px}
+.rn-tbl th:first-child,.rn-tbl td:first-child{padding-left:20px}
+.rn-r{cursor:pointer;transition:background .12s}.rn-r:hover,.rn-r:focus-visible{background:var(--raise);outline:none}.rn-r:last-child td{border-bottom:0}
+.rn-r .c-ct b{display:block;font-size:14.5px;color:var(--ink);line-height:1.3}.rn-r .c-ct span{display:block;margin-top:2px;font-size:12.5px;color:var(--muted)}
+.rn-r .c-sp,.rn-r .c-ty{color:var(--text)}.rn-r .c-ty{white-space:nowrap}.rn-r .c-va{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
+.rn-r .c-en b{display:block;font-size:14px;color:var(--ink)}.rn-r .c-en small{display:block;margin-top:2px;font-size:12px;color:var(--muted)}
+.rn-r.gone .c-en small{color:var(--red);font-weight:600}
+.rn-r .c-st .st{white-space:nowrap}.rn-r .c-go{color:var(--muted);text-align:center;padding-left:0;padding-right:10px}.rn-r:hover .c-go{color:var(--brand)}
+@container rn (max-width:900px){.rn-tbl .c-sp{display:none}.rn-tbl .c-ct{width:31%}.rn-tbl .c-ty{width:15%}.rn-tbl .c-va{width:18%}.rn-tbl .c-en{width:15%}.rn-tbl .c-st{width:17%}}
+@container rn (max-width:680px){.rn-tbl .c-ty{display:none}.rn-tbl .c-ct{width:36%}.rn-tbl .c-va{width:21%}.rn-tbl .c-en{width:19%}.rn-tbl .c-st{width:20%}}
+@container rn (max-width:520px){
+ .rn-tbl,.rn-tbl tbody,.rn-tbl tr,.rn-tbl td{display:block}.rn-tbl thead{display:none}.rn-wrap{overflow:visible}
+ .rn-r{position:relative;padding:12px 40px 12px 20px;border-bottom:1px solid var(--line)}.rn-r td,.rn-tbl .c-ct,.rn-tbl .c-va,.rn-tbl .c-en,.rn-tbl .c-st{width:auto;padding:2px 0;border:0;text-align:left}
+ .rn-r td:first-child{padding-left:0}.rn-tbl .c-sp,.rn-tbl .c-ty{display:none}.rn-r .c-go{position:absolute;right:10px;top:50%;transform:translateY(-50%);padding:0;width:auto}
+ .rn-r .c-en b,.rn-r .c-en small{display:inline}.rn-r .c-en small{margin-left:8px}.rn-r .c-st{padding-top:6px}}
+</style>`);
+document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.classList&&e.target.classList.contains("rn-r")){e.preventDefault();e.target.click()}});
 /* GP stages in workflow order, the same statuses caseStatus() derives from the step (FSK gate first, then sourcing to contract) */
 const HM_STAGES=["FSK_SUBMITTED","READY_FOR_FORUM","SCHEDULED","SUBMITTED","IN_REVIEW_BA","IN_SOURCING","OFFERS_RECEIVED","IN_NEGOTIATION","IN_SOURCING_APPROVAL","SOURCING_APPROVED","CONTRACT_IN_APPROVAL","CONTRACT_APPROVED","CLOSED"];
 function stageTimelineHTML(counts,stages){
@@ -2795,38 +2932,38 @@ function homeHTML(){const I=items(),T=I.T,D=I.D;const over=T.filter(x=>x.tm.over
   +(init?kpi("drafts","doc","Drafts",D.length,"not submitted yet")+kpi("mine","gp","My requests",mine.length,`${mine.filter(isOpen).length} open`):"")
   +kpi("queue","eye",ov?"All open requests":"Watching",I.Q.length,ov?"read only":"following")
   +(init?"":kpi("done","check","Finished",I.C.length,"closed or declined"));
- const list=drafts?D:view==="over"?T.filter(x=>x.tm.over):view==="queue"?I.Q:T,cap=8,shown=list.slice(0,cap);
+ const baseList=drafts?D:view==="over"?T.filter(x=>x.tm.over):view==="queue"?I.Q:T;
+ if(window.__hmView!==view){Object.assign(HMF,{q:"",due:"",flow:"",st:""});window.__hmView=view}
+ window.__hm={base:baseList,view,drafts};
+ const list=drafts?baseList:hmApply(baseList);
  const title=drafts?"Your drafts":view==="over"?"Overdue tasks":view==="queue"?(ov?"All open requests":"Requests you follow"):"Your tasks";
- const rows=shown.length?(drafts?tkTable(shown,"drafts",{drafts:true}):tkGroups(shown,view)):
-  drafts?emptyHTML("No drafts","Requests you save without submitting will wait for you here.","list"):emptyHTML("You are all caught up","Nothing needs you right now. New tasks will show up here as soon as they reach you.");
- const more=list.length>cap?`<div class="hm-foot"><span>Showing ${cap} of ${list.length}</span>${drafts?"":`<button class="linkbtn" data-hmall="${view}">Show all ${list.length}</button>`}</div>`:"";
+ const tools=drafts?"":hmTools(baseList);
+ const body=hmBody(list,view,drafts,baseList.length);
  const rp=(typeof p10!=="undefined"&&p10.rolePanelHTML?p10.rolePanelHTML:rolePanelHTML)(I);
  return`<div class="hm-top"><div class="hm-top-t"><h1>Good ${hr<12?"morning":hr<17?"afternoon":"evening"}, ${esc(roleName(S.role))}</h1>${T.length?`<p class="hm-sum">${plural(T.length,"task")} for you${over||tod?": ":"."}${[over?`<b class="over">${over} overdue</b>`:"",tod?`<b class="today">${tod} due today</b>`:""].filter(Boolean).join(", ")}${over||tod?".":""}</p>`:`<p class="hm-sum">Nothing needs you right now.</p>`}${dl?`<p class="hm-note">${ico("clock")}<span>${dl}</span></p>`:""}</div>${init?`<div class="hm-top-a"><button class="btn pri" data-hmgo="open:new">${ico("plus")}Start a request</button></div>`:""}</div>
  <div class="hm-kpis">${kpis}</div>
- <section class="hm-card hm-main" aria-labelledby="hmMain"><div class="hm-ch"><h2 id="hmMain">${title}</h2>${drafts?"":`<button class="linkbtn" data-hmall="${view}">${view==="queue"?"View all requests":view==="over"?"View all overdue":"View all tasks"}</button>`}</div>${rows}${more}</section>
- ${hmRenewHTML()}
- ${init?"":rp?`<div class="hm-roles">${rp}</div>`:""}`}
+ <section class="hm-card hm-main" aria-labelledby="hmMain"><div class="hm-ch"><h2 id="hmMain">${title}</h2>${drafts?"":`<button class="linkbtn" data-hmall="${view}">${view==="queue"?"View all requests":view==="over"?"View all overdue":"View all tasks"}</button>`}</div>${tools}<div id="hmRows">${body}</div></section>
+
+ <div class="hm-below">${hmRenewHTML()}${init?"":rp?`<div class="hm-roles">${rp}</div>`:""}</div>`}
 function summaryBy(list){const c={};list.forEach(r=>{const s=caseStatus(r);c[s]=(c[s]||0)+1});const tot=list.length||1;const ent=Object.entries(c).sort((a,b)=>b[1]-a[1]);
  return{bar:`<div class="stack" role="img" aria-label="Requests by status">${ent.map(([s,n])=>`<i class="tone-${ST_TONE[s]||"n"}" style="flex:${n}" title="${esc(ST_LABEL[s]||s)}: ${n}"></i>`).join("")}</div>`,
   legend:ent.map(([s,n])=>`<button data-qstat="${s}"><i class="tone-${ST_TONE[s]||"n"}"></i>${esc(ST_LABEL[s]||s)} <b>${n}</b></button>`).join("")}}
 function miniList(list,meta){return`<ul class="mini">${list.map(r=>`<li><button data-case="${r._id}"><span class="t"><b>${esc(r.no)}</b> ${esc(r.topic)}</span><span class="m">${meta(r)}</span></button></li>`).join("")}</ul>`}
 function rolePanelHTML(I){const role=S.role,e=S.entity;const all=I.T.concat(I.Q);let h="";
- if(role==="INITIATOR"){h=`<div class="panel startbox"><h3>Start a request</h3><p>Pick the sourcing type and budget. AIS converts it to EUR, finds the budget band and shows the route before you submit (GP steps 2–3, 8–9).</p><button class="btn-e" data-open="new">${ico("plus")}Start a request</button></div>`;
-  if(I.D.length)h+=`<div class="panel"><h3>Drafts</h3><p class="sub">Only you can see drafts. Draft time does not count toward TAT (US-074).</p>${miniList(I.D,r=>"Saved "+relD(r.created))}</div>`;
+ if(role==="INITIATOR"){h=`<div class="panel startbox"><h3>Start a request</h3><p>Pick the sourcing type and budget. AIS converts it to EUR, finds the budget band and shows the route before you submit.</p><button class="btn-e" data-open="new">${ico("plus")}Start a request</button></div>`;
+  if(I.D.length)h+=`<div class="panel"><h3>Drafts</h3><p class="sub">Only you can see drafts. Draft time does not count toward the due date.</p>${miniList(I.D,r=>"Saved "+relD(r.created))}</div>`;
   const mine=DB.req.filter(r=>r.entity===e&&r.module==="GP"&&r.initiator===S.user&&r.status!=="DRAFT");const s=summaryBy(mine);h+=`<div class="panel"><h3>My requests</h3><p class="sub">${plural(mine.length,"request")} you raised in this entity.</p>${s.bar}<div class="legend">${s.legend}</div></div>`}
  else if(APPROVERS.includes(role)){const b=[0,0,0];I.T.forEach(x=>b[x.tm.age<=1?0:x.tm.age<=3?1:2]++);const mx=Math.max(1,...b);
-  h=`<div class="panel"><h3>Waiting on you, by age</h3><p class="sub">Working days each request has sat at your step.</p><div class="bars">${[["0 to 1 days",""],["2 to 3 days","w"],["4 or more days","x"]].map(([l,c],i)=>`<div class="bar-r"><span>${l}</span><span class="tr"><i class="${c}" style="width:${b[i]/mx*100}%"></i></span><b>${b[i]}</b></div>`).join("")}</div>${I.T.length?`<p class="fine">Oldest: <button class="linkbtn" data-case="${[...I.T].sort((a,b)=>b.tm.age-a.tm.age)[0].r._id}">${esc([...I.T].sort((a,b)=>b.tm.age-a.tm.age)[0].r.no)}</button></p>`:""}</div>`;
-  if(["ED_PROC","MD"].includes(role))h+=`<div class="panel"><h3>Recorded on your behalf</h3><p class="sub">The Approval Matrix marks your approvals as recorded by the Buyer with evidence (GP-S27). They appear here once a PO or FC is above INR 1 crore.</p></div>`}
+  h=`<div class="panel"><h3>Waiting on you, by age</h3><p class="sub">How long requests have been waiting for you.</p><div class="bars">${[["1 day or less",""],["2 to 3 days","w"],["4 days or more","x"]].map(([l,c],i)=>`<div class="bar-r"><span>${l}</span><span class="tr"><i class="${c}" style="width:${b[i]/mx*100}%"></i></span><b>${b[i]}</b></div>`).join("")}</div>${I.T.length?`<p class="fine">Oldest: <button class="linkbtn" data-case="${[...I.T].sort((a,b)=>b.tm.age-a.tm.age)[0].r._id}">${esc([...I.T].sort((a,b)=>b.tm.age-a.tm.age)[0].r.no)}</button></p>`:""}</div>`;
+  if(["ED_PROC","MD"].includes(role))h+=`<div class="panel"><h3>Recorded on your behalf</h3><p class="sub">The Approval Matrix records your approvals through the Buyer, with evidence. They appear here once a PO or FC is above INR 1 crore.</p></div>`}
  else if(role==="BUYER"){const G=[["Review",[12]],["Sourcing",[13,14,15,16]],["Offers and SFO",[17,18,19,20]],["Negotiation",[21,33]],["Approval",[22,23,24,25,34]],["Contract",[26,27,28,29,35,36]]];const gp=all.filter(x=>x.r.module==="GP");const mx=Math.max(1,...G.map(([,s])=>gp.filter(x=>s.includes(+x.r.step)).length));
   h=`<div class="panel"><h3>Your pipeline</h3><p class="sub">GP requests you act on or follow, by stage.</p><div class="bars">${G.map(([l,s])=>{const n=gp.filter(x=>s.includes(+x.r.step)).length;return`<div class="bar-r"><span>${l}</span><span class="tr"><i style="width:${n/mx*100}%"></i></span><b>${n}</b></div>`}).join("")}</div></div>`;
-  const nb=I.T.filter(x=>x.r.module==="NegBot");h+=`<div class="panel"><h3>Negotiation Bot</h3><p class="sub">${nb.length?`${plural(nb.length,"cart waits","carts wait")} for you to confirm suppliers and target price range. The bot cannot start without it (NB-S06).`:"No cart is waiting for your authorisation."}</p>${nb.length?miniList(nb.map(x=>x.r),r=>money(r.amount,"INR")):""}</div>`}
+  const nb=I.T.filter(x=>x.r.module==="NegBot");h+=`<div class="panel"><h3>Negotiation Bot</h3><p class="sub">${nb.length?`${plural(nb.length,"cart waits","carts wait")} for you to confirm suppliers and the target price range. The bot cannot start without it.`:"No cart is waiting for your authorisation."}</p>${nb.length?miniList(nb.map(x=>x.r),r=>money(r.amount,"INR")):""}</div>`}
  else if(["FSK_COORD","CONTROLLING"].includes(role)){const f=all.filter(x=>modOfCase(x.r)==="fsk");const mx=Math.max(1,...[5,6,7].map(n=>f.filter(x=>+x.r.step===n).length));
-  h=`<div class="panel"><h3>FSK requests</h3><p class="sub">${fskOn()?"Services that need an FSK reference before procurement starts.":"FSK is not applicable in this entity."}</p><div class="bars">${[[5,"Submitted"],[6,"Presentation"],[7,"Decision"]].map(([n,l])=>{const c=f.filter(x=>+x.r.step===n).length;return`<div class="bar-r"><span>Step ${n}, ${l}</span><span class="tr"><i style="width:${c/mx*100}%"></i></span><b>${c}</b></div>`}).join("")}</div></div>`}
- else if(role==="BUYER_SUPERVISOR"){const nb=DB.req.filter(r=>r.entity===e&&r.module==="NegBot");const s=summaryBy(nb);h=`<div class="panel"><h3>Negotiation Bot stages</h3><p class="sub">Every NegBot request in this entity (NB-S10).</p>${s.bar}<div class="legend">${s.legend}</div></div>`}
- else if(role==="ADMIN"){const c={seed:0,client:0,other:0};MASTERS.forEach(m=>{const s=statusOf(m);if(s==="seed")c.seed++;else if(s==="client")c.client++;else c.other++});const g=visGaps();const noTat=DB.step.filter(s=>s._active&&s.operational&&s.module==="GP"&&s.tat_days==="").length;
-  h=`<div class="panel"><h3>Setup health</h3><p class="sub">The Task List, due dates and reminders you see here are computed from these masters.</p><div class="bars">${[["Seeded",c.seed,""],["Awaiting client",c.client,"w"],["Demo or sync",c.other,"w"]].map(([l,n,k])=>`<div class="bar-r"><span>${l}</span><span class="tr"><i class="${k}" style="width:${n/MASTERS.length*100}%"></i></span><b>${n}</b></div>`).join("")}</div>
-  <ul class="mini" style="margin-top:12px"><li><button data-admin="vis"><span class="t">Step Visibility</span><span class="m">${g.length?`${g.length} actor gap(s)`:"No gaps"}</span></button></li><li><button data-admin="step"><span class="t">Process Step standard TAT</span><span class="m">${noTat?`${noTat} blank, ${ASSUMED_TAT} days assumed`:"Complete"}</span></button></li><li><button data-admin="reminder"><span class="t">Reminder Rules</span><span class="m">${DB.reminder.filter(r=>r._active).length} active</span></button></li></ul></div>`}
- else if(role==="INFOSEC"){const it=DB.req.filter(r=>r.entity===e&&r.category==="IT"&&r.module==="GP"&&r.hist.some(h=>+h.step===10&&h.action==="Approved"));h=`<div class="panel"><h3>IT requests past CC Head approval</h3><p class="sub">You are told when an IT-category request is approved at step 10 so security review can start (US-073, G-07).</p>${it.length?miniList(it,r=>"Step "+(r.step||"")):'<p class="fine">None yet.</p>'}</div>`}
+  h=`<div class="panel"><h3>FSK requests</h3><p class="sub">${fskOn()?"Services that need an FSK reference before procurement starts.":"FSK is not applicable in this entity."}</p><div class="bars">${[[5,"Submitted"],[6,"Presentation"],[7,"Decision"]].map(([n,l])=>{const c=f.filter(x=>+x.r.step===n).length;return`<div class="bar-r"><span>${l}</span><span class="tr"><i style="width:${c/mx*100}%"></i></span><b>${c}</b></div>`}).join("")}</div></div>`}
+ else if(role==="BUYER_SUPERVISOR"){const nb=DB.req.filter(r=>r.entity===e&&r.module==="NegBot");const s=summaryBy(nb);h=`<div class="panel"><h3>Negotiation Bot stages</h3><p class="sub">Every Negotiation Bot request in this entity.</p>${s.bar}<div class="legend">${s.legend}</div></div>`}
+ else if(role==="ADMIN"){h=setupHealthHTML()}
+ else if(role==="INFOSEC"){const it=DB.req.filter(r=>r.entity===e&&r.category==="IT"&&r.module==="GP"&&r.hist.some(h=>+h.step===10&&h.action==="Approved"));h=`<div class="panel"><h3>IT requests past CC Head approval</h3><p class="sub">You are told when an IT request is approved by the Cost Center Head, so the security review can start.</p>${it.length?miniList(it,r=>stageName(r.step)):'<p class="fine">None yet.</p>'}</div>`}
  else{const o=DB.req.filter(r=>r.entity===e&&isOpen(r));const over=o.filter(r=>timing(r).over).length;h=`<div class="panel"><h3>Entity at a glance</h3><p class="sub">${plural(o.length,"open request")}, ${over} overdue. Read only.</p><div class="bars">${["HIGH","LOW","SCRAP","NEG"].map(f=>{const n=o.filter(r=>r.flow===f).length;return`<div class="bar-r"><span>${FLOW_LBL[f]}</span><span class="tr"><i style="width:${n/Math.max(1,o.length)*100}%"></i></span><b>${n}</b></div>`}).join("")}</div></div>`}
  return h}
 function notifPeekHTML(){const L=myNotifs("IN_APP").slice(0,4);return`<div class="panel"><div class="sec-h" style="margin:0"><h3>Latest notifications</h3><button class="linkbtn" data-open="notif">Open all</button></div>${L.length?`<ul class="mini">${L.map(n=>`<li><button data-notif="${n._id}"><span class="t">${n.read?"":"<b>• </b>"}${esc(n.body)}</span><span class="m">${esc(relD(n.d))}</span></button></li>`).join("")}</ul>`:'<p class="fine">No notifications yet.</p>'}</div>`}
@@ -8063,7 +8200,7 @@ const NegDesk=(()=>{
   const live=sup.filter(s=>s.total>0);if(!live.length)return{error:"No offer has a value."};
   const limit=r2(Math.min(...live.map(s=>s.total))),target=r2(limit*cfg.targetPct);
   const first=sup.find(s=>s.key===cmp.award)||live.slice().sort((a,b)=>a.total-b.total)[0];
-  return{payload:{case_no:String(cmp.comparison_id).slice(0,40),supplier_id:first.sid,topic:String(r.topic||r.no).slice(0,160),target,limit,entity:r.entity,cart_no:String(r.sc||""),
+  return{payload:{case_no:String(r.no?r.no+"-NEG":cmp.comparison_id).slice(0,40),supplier_id:first.sid,topic:String(r.topic||r.no).slice(0,160),target,limit,entity:r.entity,cart_no:String(r.sc||""),
    requestor:"Initiator",cost_centre:String(r.cost_centre||r.cc||"-"),details:details(r,cmp,sup),
    suppliers:sup.map(s=>({sid:s.sid,name:s.name,lang:s.lang,total:Math.max(1,r2(s.total)),rating:4,payment_code:"ZD30"})),items,offers},
    map:{pos:cmp.pos.map(p=>p.no),sup:sup.map(s=>({key:s.key,sid:s.sid,rate:s.rate}))}}}
