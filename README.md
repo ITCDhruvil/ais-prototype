@@ -4,24 +4,34 @@ One self-contained HTML file (`index.html`): vanilla JS and CSS, no build step, 
 
 This folder is meant to live in **its own repository**, separate from the Negotiation Desk. People who work on the UI only touch this repository; the Desk stays deployed as it is.
 
-## Two ways to run it
+## Run it on your machine
 
-**1. On its own (default, safest).** Open `index.html` in a browser, or serve the folder with `python -m http.server 8765`. With no Desk address set, AIS never calls the Desk. A request that reaches the negotiation step runs the internal simulation, so the whole flow can be analysed and changed without any backend.
+1. Clone the repository and serve the folder over http (do not double-click the file, the browser then sends no usable origin and the Desk blocks it):
 
-**2. Connected to the deployed Negotiation Desk.** The Desk addresses are two `<meta>` tags at the top of `index.html`:
+   ```bash
+   python -m http.server 8765
+   ```
+
+   Open http://localhost:8765. Any port works; the Desk accepts `localhost` and `127.0.0.1` on every port.
+2. **Negotiation Bot / Negotiation Desk.** AIS first looks for a Desk on `http://localhost:8000` (API) and `http://localhost:3000` (web). If none answers, it uses the Desk deployed on Render:
+   - API `https://negotiation-api.onrender.com`, web `https://negotiation-web.onrender.com`.
+   - Render's free plan sleeps, so the first call can take up to a minute. Open the web address once in a tab to wake it, then retry.
+   - Those two addresses are also the defaults when the `<meta>` tags below are not filled in.
+
+The Desk addresses can be set explicitly with two `<meta>` tags at the top of `index.html`:
 
 ```html
 <meta name="negdesk-api" content="https://negotiation-api.onrender.com">
 <meta name="negdesk-web" content="https://negotiation-web.onrender.com">
 ```
 
-On Render these are filled in by the build command from the environment variables `NEGDESK_API` and `NEGDESK_WEB`. Opened from `localhost` with no tags set, AIS looks for the Desk on `http://localhost:8000` (API) and `http://localhost:3000` (web).
+On Render these are filled in by the build command from the environment variables `NEGDESK_API` and `NEGDESK_WEB`.
 
 ## What AIS sends to the Desk, and what that means for UI work
 
 With the addresses set, AIS **writes to the Desk**: it creates an event per negotiation, uploads files, and approves the deal. These are real calls to a shared service, so:
 
-- Work against the simulation (option 1) unless you need the Desk. Most UI work does not.
+- Most UI work does not need the Desk, but a request that reaches the negotiation step is sent to it.
 - Use the Desk link only for testing the integration, and expect test events (`CMP-...`) to pile up there. The Desk owner can clear them.
 - Never add keys, passwords or tokens to this file; the Desk needs none.
 
