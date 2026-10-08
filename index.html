@@ -7239,7 +7239,9 @@ function qExpiring(n){const t=today(),lim=addMon(t,+n||6);return crScope().filte
 const RP={tab:"",per:"WEEKLY",drill:"",qstep:"",qn:6,qbuyer:""};
 const rpPer=()=>{const days=RP.per==="MONTHLY"?30:7;return{days,from:addD(today(),-days),to:today(),lab:RP.per==="MONTHLY"?"last 30 days":"last 7 days"}};
 function rpTabs(){const a=access(S.role,S.entity);const has=k=>a.mods.some(m=>m[0]===k);const T=[];
- if(has("gp"))T.push(["gp","GP pipeline"]);if(has("fsk")&&fskOn())T.push(["fsk","FSK Portal"]);if(has("nb")||["DEPT_HEAD","BUYER"].includes(S.role))T.push(["nb","Negotiation Bot"]);if(has("gp"))T.push(["ctr","Contracts and carts"]);T.push(["q","Queries"]);return T}
+ if(has("gp"))T.push(["gp","GP pipeline"]);if(has("fsk")&&fskOn())T.push(["fsk","FSK Portal"]);if(has("gp"))T.push(["ctr","Contracts"]);if(has("gp"))T.push(["appr","Approval bottlenecks"]);
+ /* Kept for later: if(has("nb")||["DEPT_HEAD","BUYER"].includes(S.role))T.push(["nb","Negotiation Bot"]);T.push(["q","Queries"]);  The Negotiation Desk covers the first; rpNbHTML and rpQHTML are still defined. */
+ return T}
 function rpGpCases(){return(INC10.gpAll.includes(S.role)?DB.req.filter(r=>r.entity===S.entity):[...new Set(visibleCases())]).filter(r=>r.module==="GP"&&r.status!=="DRAFT")}
 const rpIn=(d,P)=>!!d&&d>P.from&&d<=P.to;
 function rpTile(k,n,l,sub){return`<button class="panel fk-k" data-rp="drill" data-v="${k}" aria-pressed="${RP.drill===k}"><b>${n}</b><span>${esc(l)}</span>${sub?`<small class="sub">${esc(sub)}</small>`:""}</button>`}
@@ -7301,8 +7303,7 @@ function rpQHTML(){const C=qCarts();const R=qRfqs(RP.qstep);const all=qRfqs("");
  <div class="tablewrap"><table><thead><tr><th>Contract</th><th>Type</th><th>Supplier</th><th>Request</th><th>End</th><th>Status</th><th>Next reminder</th></tr></thead><tbody>${X.map(c=>{const r=crReq(c);return`<tr><td><button class="linkbtn" data-ctr="${esc(c.contract_id)}">${esc(c.contract_id)}</button></td><td class="small">${esc(INC10.ctype[c.contract_type])}</td><td class="small">${esc(c.supplier_name)}</td><td class="small">${r?`<button class="linkbtn" data-case="${r._id}">${esc(r.no)}</button>`:"—"}</td><td class="small">${esc(fmtD(c.end_date))}</td><td><div class="stk">${crChip(c)}</div></td><td class="small">${esc(fmtD(crNext(c)))||"—"}</td></tr>`}).join("")||'<tr><td colspan="7" class="sub">No contract ends in that window.</td></tr>'}</tbody></table></div></section>`}
 function rpHTML(){const T=rpTabs();const who=S.user+"|"+S.role+"|"+S.entity;if(RP.who!==who){RP.who=who;RP.tab="";RP.drill=""}if(!T.some(t=>t[0]===RP.tab))RP.tab=T[0][0];const per=["gp","fsk","nb"].includes(RP.tab);
  const body={gp:rpGpHTML,fsk:rpFskHTML,nb:rpNbHTML,ctr:rpCtrHTML,q:rpQHTML}[RP.tab]();
- return`<div class="page-h"><div><h1>Reports</h1><p class="sub">Dashboards and predefined queries for ${esc(roleName(S.role))} in ${esc(DB.entity.find(e=>e.code===S.entity)?.name||S.entity)} (GP steps 38 and 41). Figures are computed live from the records your role can see; select any tile, bar or row to list the requests behind it.</p></div>
- ${per?`<span class="seg" role="group" aria-label="Period">${[["WEEKLY","Weekly"],["MONTHLY","Monthly"]].map(([v,l])=>`<button class="btn" data-rp="per" data-v="${v}" aria-pressed="${RP.per===v}">${l}</button>`).join("")}</span>`:""}</div>
+ return`<div class="page-h"><div><h1>Reports</h1><p class="sub">Live dashboards for ${esc(roleName(S.role))} in ${esc(DB.entity.find(e=>e.code===S.entity)?.name||S.entity)}. Select a card, bar or row to list the requests behind it.</p></div></div>
  ${asmNote("A-83")}${asmNote("A-85")}
  <div class="seg fk-tabs" role="tablist">${T.map(([k,l])=>`<button class="btn" role="tab" aria-pressed="${RP.tab===k}" data-rp="tab" data-v="${k}">${esc(l)}</button>`).join("")}</div>${body}
  <details class="disc"><summary>Not in this increment</summary><div><p class="fine">The report builder with saved definitions (US-171) and PowerPoint generation from predefined or AI formats (US-172, US-173) wait for the client's report catalogue and templates (G-29). Every list here exports to CSV.</p></div></details>`}
@@ -8620,17 +8621,165 @@ function rcTable(head,rows,num){return`<div class="tablewrap"><table class="rc-t
 const rcMicro=(n,mx,c)=>`<span class="rc-mb"><i style="width:${mx?(n/mx*100).toFixed(1):0}%;background:var(${c||"--s1"})"></i></span>`;
 const rcFlowC={HIGH:"--s1",LOW:"--s2",SCRAP:"--s3",NEG:"--s4"};
 function rcBuckets(P){const w=P.days,N=RP.per==="MONTHLY"?6:8;const o=[];for(let i=N-1;i>=0;i--){const to=addD(today(),-w*i),from=addD(to,-w);o.push({from,to,l:fmtD(to),full:`${fmtD(addD(from,1))} to ${fmtD(to)}`})}return o}
-rpHTML=function(){const T=rpTabs();const who=S.user+"|"+S.role+"|"+S.entity;if(RP.who!==who){RP.who=who;RP.tab="";RP.drill=""}if(!T.some(t=>t[0]===RP.tab))RP.tab=T[0][0];const per=["gp","fsk","nb"].includes(RP.tab);
- const body={gp:rpGpHTML,fsk:rpFskHTML,nb:rpNbHTML,ctr:rpCtrHTML,q:rpQHTML}[RP.tab]();const TI={gp:"gp",fsk:"fsk",nb:"nb",ctr:"contract",q:"search"};
- return`<div class="page-h"><div><h1>Reports</h1><p class="sub">Dashboards and predefined queries for ${esc(roleName(S.role))} in ${esc(DB.entity.find(e=>e.code===S.entity)?.name||S.entity)} (GP steps 38 and 41). Figures are computed live from the records your role can see; select any tile, segment, bar or row to list the requests behind it. Hover or focus a chart to read exact values. Weekly or Monthly sets the period for the closed, declined and new counts.</p></div>
- <div class="rc-hr"><span class="rc-asof">${ico("clock")}As of ${esc(wdOf(today()))} ${esc(fmtD(today()))}</span>${per?`<span class="seg" role="group" aria-label="Period">${[["WEEKLY","Weekly"],["MONTHLY","Monthly"]].map(([v,l])=>`<button class="btn" data-rp="per" data-v="${v}" aria-pressed="${RP.per===v}">${l}</button>`).join("")}</span>`:""}</div></div>
+/* Reports tab bar: underline tabs with an attention count, and the period switch on the same row */
+function rcTabCount(k){try{
+ if(k==="gp"){const n=rpGpSets().over.length;return n?[n,"bad","overdue at their step"]:null}
+ if(k==="fsk"){const n=DB.fskcase.filter(c=>fkVisible(c)&&!["APPROVED","NOT_REQUIRED","REJECTED","DRAFT"].includes(c.status)).length;return n?[n,"","FSK requests in progress"]:null}
+ if(k==="ctr"){const n=crScope().filter(c=>c.end_date&&crState(c)!=="RENEWED"&&rpDays(c.end_date)<=90).length;return n?[n,"warn","expired or ending within 90 days"]:null}
+ if(k==="appr"){const it=rpApprItems().filter(x=>x.status!=="Approved"),o=it.filter(x=>x.status==="Overdue").length;return o?[o,"bad","approvals overdue"]:it.length?[it.length,"warn","approvals waiting"]:null}
+ }catch(e){}return null}
+function rcTabBar(T,TI,per){return`<div class="rc-tb2"><nav class="rc-nav" role="tablist" aria-label="Report">${T.map(([k,l])=>{return`<button type="button" role="tab" class="rc-tab" aria-selected="${RP.tab===k}" data-rp="tab" data-v="${k}">${ico(TI[k]||"chart")}<span>${esc(l)}</span></button>`}).join("")}</nav>
+ <div class="rc-ctl"><span class="rc-asof">${ico("clock")}As of ${esc(wdOf(today()))} ${esc(fmtD(today()))}</span>${per?`<span class="seg" role="group" aria-label="Period">${[["WEEKLY","Weekly"],["MONTHLY","Monthly"]].map(([v,l])=>`<button class="btn" data-rp="per" data-v="${v}" aria-pressed="${RP.per===v}">${l}</button>`).join("")}</span>`:""}</div></div>`}
+document.head.insertAdjacentHTML("beforeend",`<style id="rctabcss">
+.rc-tb2{display:flex;align-items:flex-end;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:4px 0 18px}
+.rc-nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;min-width:0}.rc-nav::-webkit-scrollbar{display:none}
+.rc-tab{display:inline-flex;align-items:center;gap:9px;padding:12px 16px 13px;border:0;background:none;color:var(--muted);font:inherit;font-weight:600;white-space:nowrap;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;border-radius:8px 8px 0 0}
+.rc-tab svg.i{width:18px;height:18px;flex:none}
+.rc-tab:hover{color:var(--ink);background:var(--raise)}
+.rc-tab[aria-selected="true"]{color:var(--brand);border-bottom-color:var(--brand)}
+.rc-tab:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
+.rc-n{min-width:20px;padding:1px 7px;border-radius:999px;background:var(--raise);color:var(--muted);font-size:11.5px;font-weight:700;text-align:center;line-height:1.5}
+.rc-n.bad{background:var(--red-soft);color:var(--red)}.rc-n.warn{background:var(--amber-soft);color:var(--amber)}
+.rc-tab[aria-selected="true"] .rc-n:not(.bad):not(.warn){background:var(--brand-soft);color:var(--brand)}
+.rc-ctl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-bottom:8px}
+@media (max-width:760px){.rc-tab{padding:10px 12px 11px}.rc-ctl{width:100%;padding-bottom:10px}}
+</style>`);
+/* Reports carry no "i" help buttons: the page title and every card are plain */
+const renderBaseRep=renderBase;renderBase=function(){renderBaseRep();const c=$("#content");if(c)c.classList.toggle("rep-page",S.module==="rep")};
+document.head.insertAdjacentHTML("beforeend",`<style id="repnoinfo">.rep-page .info{display:none!important}</style>`);
+rpHTML=function(){const T=rpTabs();const who=S.user+"|"+S.role+"|"+S.entity;if(RP.who!==who){RP.who=who;RP.tab="";RP.drill=""}if(!T.some(t=>t[0]===RP.tab))RP.tab=T[0][0];const per=["gp","fsk","appr"].includes(RP.tab);
+ const body={gp:rpGpHTML,fsk:rpFskHTML,nb:rpNbHTML,ctr:rpCtrHTML,q:rpQHTML,appr:rpApprHTML}[RP.tab]();const TI={gp:"gp",fsk:"fsk",nb:"nb",ctr:"contract",q:"search",appr:"check"};
+ return`<div class="page-h"><div><h1>Reports</h1><p class="sub">Live dashboards for ${esc(roleName(S.role))} in ${esc(DB.entity.find(e=>e.code===S.entity)?.name||S.entity)}. Select a card, bar or row to list the requests behind it.</p></div></div>
  ${asmNote("A-83")}${asmNote("A-85")}
- <div class="seg fk-tabs rc-tabs" role="tablist">${T.map(([k,l])=>`<button class="btn" role="tab" aria-pressed="${RP.tab===k}" data-rp="tab" data-v="${k}">${ico(TI[k]||"chart")}<span>${esc(l)}</span></button>`).join("")}</div>${body}
+ ${rcTabBar(T,TI,per)}${body}
  <details class="disc"><summary>Not in this increment</summary><div><p class="fine">The report builder with saved definitions (US-171) and PowerPoint generation from predefined or AI formats (US-172, US-173) wait for the client's report catalogue and templates (G-29). Every list here exports to CSV.</p></div></details>`};
 document.addEventListener("click",e=>{const b=e.target.closest("[data-rcv]");if(!b)return;const card=b.closest(".rc-card");if(!card)return;const v=b.dataset.rcv;RP.view[b.dataset.rid]=v;
  card.querySelectorAll("[data-rcv]").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.rcv===v)));card.querySelectorAll("[data-rcb]").forEach(x=>x.hidden=x.dataset.rcb!==v);RCTIP.hide()});
 const rpGpDrill18=rpGpDrill;rpGpDrill=function(k,X){if(k&&k.startsWith("oflow:")){const f=k.slice(6);return[`${FLOW_LBL[f]||f}, open requests`,X.open.filter(r=>r.flow===f)]}if(k&&k.startsWith("ocat:")){const f=k.slice(5);return[`Category ${DB.category.find(c=>c.code===f)?.label||f}, open requests`,X.open.filter(r=>r.category===f)]}if(k&&k.startsWith("oband:")){const f=k.slice(6);return[`Budget band ${f}, open requests`,X.open.filter(r=>(r.band||"\u2014")===f)]}return rpGpDrill18(k,X)};
 
+/* ---- Reports: overview cards (value, savings, delivery) ---- */
+const rpInrOf=r=>{if(r.value_inr!=null)return+r.value_inr;if(r.currency==="INR")return+r.amount||0;const x=p6Inr(r.amount,r.currency);return x?x.inr:0};
+const inrShort=v=>{v=+v||0;const a=Math.abs(v);const f=(n,u)=>`₹ ${n.toFixed(n>=100?0:2)} ${u}`;if(a>=1e7)return f(v/1e7,"Cr");if(a>=1e5)return f(v/1e5,"L");if(a>=1e3)return f(v/1e3,"K");return`₹ ${Math.round(v)}`};
+function rcSpark(vals,label){const n=vals.length;if(n<2)return"";const mn=Math.min(...vals),mx=Math.max(...vals),rg=(mx-mn)||1;
+ const X=i=>(i/(n-1)*100),Y=v=>36-((v-mn)/rg)*30;const d=vals.map((v,i)=>`${i?"L":"M"}${X(i).toFixed(2)} ${Y(v).toFixed(2)}`).join(" ");
+ return`<svg class="hc-sp" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="${esc(label||"Trend")}"><path d="${d} L100 40 L0 40 Z" class="a"/><path d="${d}" class="l" vector-effect="non-scaling-stroke"/></svg>`}
+const hcDelta=(cur,prev,suffix,goodUp)=>{if(!prev)return"";const p=Math.round((cur-prev)/prev*100);if(!p)return`<span class="hc-d flat">No change ${esc(suffix)}</span>`;const up=p>0,cls=goodUp==null?(up?"ok":"flat"):((goodUp?up:!up)?"ok":"bad");return`<span class="hc-d ${cls}">${up?"▲":"▼"} ${up?"+":""}${p}%<small>${esc(suffix)}</small></span>`};
+function hcCard(o){const{icon,tone,title,sub,value,unit,delta,pill,body,chev}=o;
+ return`<article class="hc ${tone||""}"><header class="hc-h"><span class="hc-ic" aria-hidden="true">${ico(icon)}</span><div class="hc-t"><h3>${esc(title)}</h3><p>${esc(sub)}</p></div>${chev?`<button type="button" class="hc-go" data-rp="drill" data-v="${esc(chev)}" aria-label="List the requests behind ${esc(title)}">${ico("chev")}</button>`:""}</header>
+ <div class="hc-v"><b>${value}</b>${unit?`<span>${esc(unit)}</span>`:""}${delta||""}</div>${pill?`<span class="hc-pill">${pill}</span>`:""}${body||""}</article>`}
+function rpHeroGP(X,B,cur,prv,per){const{L,P,open}=X;const N=B.length;
+ /* 1. pipeline value */
+ const val=B.map(b=>L.filter(r=>r.created<=b.to&&(isOpen(r)||(r.closed&&r.closed>b.to))).reduce((a,r)=>a+rpInrOf(r),0));
+ const vOpen=open.reduce((a,r)=>a+rpInrOf(r),0),vClosed=X.closed.reduce((a,r)=>a+rpInrOf(r),0);
+ const c1=hcCard({icon:"gp",tone:"t-info",title:"Pipeline value",sub:"Total budget of requests in progress",value:inrShort(vOpen),delta:hcDelta(val[N-1],val[N-2],"vs "+per+" ago",null),pill:"Open requests",chev:"open",
+  body:`<div class="hc-split"><div><span class="hc-k"><i class="d1"></i>In progress</span><b>${inrShort(vOpen)}</b><small>${plural(open.length,"request")}</small></div><div><span class="hc-k"><i class="d2"></i>Closed (${esc(P.lab)})</span><b>${inrShort(vClosed)}</b><small>${plural(X.closed.length,"request")}</small></div></div>${rcSpark(val,"Open pipeline value over time")}`});
+ /* 2. negotiation savings */
+ const sav=[];L.forEach(r=>{let ini=null,neg=null;
+  if(r.neg&&r.neg.submitted){const aw=(r.offers||[]).find(x=>x.id===r.neg.award);if(aw){const t=p6Inr(aw.amount,aw.currency||r.currency);ini=t?t.inr:null;neg=p6NegInr(r)}}
+  else if(r.lb&&r.lb.cmp&&r.lb.cmp.status==="APPROVED"&&r.lb.cmp.award){const T0=lbTotals(r.lb.cmp,false),T1=lbTotals(r.lb.cmp,true);ini=T0[r.lb.cmp.award];neg=T1[r.lb.cmp.award]}
+  if(ini>0&&neg>0&&ini>neg)sav.push({r,ini,neg,save:ini-neg})});
+ const sv=sav.reduce((a,x)=>a+x.save,0),si=sav.reduce((a,x)=>a+x.ini,0),sn=si-sv,sp=si?sv/si*100:0;const top=sav.slice().sort((a,b)=>b.save-a.save).slice(0,3);
+ const c2=hcCard({icon:"trend",tone:"t-ok",title:"Negotiation savings",sub:"Initial offer against the agreed price",value:sav.length?inrShort(sv):"₹ 0",pill:sav.length?`${sp.toFixed(1)}% below the initial offers`:"No negotiated request yet",
+  body:sav.length?`<div class="hc-bar" role="img" aria-label="Agreed price ${Math.round(100-sp)} percent, saved ${Math.round(sp)} percent of the initial offers"><i class="s1" style="width:${(100-sp).toFixed(1)}%"></i><i class="s2" style="width:${sp.toFixed(1)}%"></i></div>
+   <div class="hc-split"><div><span class="hc-k"><i class="d1"></i>Initial offers</span><b>${inrShort(si)}</b><small>${plural(sav.length,"negotiated request")}</small></div><div><span class="hc-k"><i class="d3"></i>Agreed price</span><b>${inrShort(sn)}</b><small>${Math.round(100-sp)}% of initial</small></div></div>
+   <div class="hc-list"><div class="hc-lh"><b>Biggest savings</b><span>${plural(sav.length,"request")}</span></div>${top.map(x=>`<button type="button" class="hc-li" data-case="${x.r._id}"><span>${esc(x.r.topic)}</span><b>${inrShort(x.save)}</b></button>`).join("")}</div>`
+   :`<p class="hc-none">Savings appear here once a request is negotiated and its price is agreed.</p>`});
+ /* 3. delivery performance */
+ const ov=X.over.length,on=Math.max(0,open.length-ov);
+ const c3=hcCard({icon:"timer",tone:"t-warn",title:"Delivery performance",sub:"How fast requests close and how many are late",value:cur.n?RCN(cur.avg):"—",unit:cur.n?"days to close":"",delta:cur.n&&prv.n?hcDelta(cur.avg,prv.avg,"vs "+per+" ago",false):"",pill:cur.n?`${plural(cur.n,"request")} closed, average working days`:`None closed in the last ${esc(per)}`,chev:"closed",
+  body:`<div class="hc-bar" role="img" aria-label="${on} of ${open.length} open requests on track"><i class="s1" style="width:${open.length?(on/open.length*100).toFixed(1):0}%"></i><i class="s3" style="width:${open.length?(ov/open.length*100).toFixed(1):0}%"></i></div>
+   <div class="hc-split"><div><span class="hc-k"><i class="d1"></i>On track</span><b>${RCN(on)}</b><small>${rcPct(on,open.length)}% of open</small></div><div><span class="hc-k"><i class="d4"></i>Overdue</span><b>${RCN(ov)}</b><small>${rcPct(ov,open.length)}% of open</small></div></div>
+   <div class="hc-split t"><div><span class="hc-k"><i class="d1"></i>Closed (${esc(P.lab)})</span><b>${RCN(X.closed.length)}</b><small>completed</small></div><div><span class="hc-k"><i class="d5"></i>Declined (${esc(P.lab)})</span><b>${RCN(X.failed.length)}</b><small>rejected or stopped</small></div></div>`});
+ return`<section class="hc-row" aria-label="Overview">${c1}${c2}${c3}</section>`}
+document.head.insertAdjacentHTML("beforeend",`<style id="hccss">
+.hc-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:0 0 16px}
+.hc{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px 22px 22px;display:flex;flex-direction:column;gap:14px;min-width:0;--tc:var(--info);--ts:var(--info-soft)}
+.hc.t-ok{--tc:var(--ok);--ts:var(--ok-soft)}.hc.t-warn{--tc:var(--amber);--ts:var(--amber-soft)}
+.hc-h{display:flex;align-items:flex-start;gap:12px}
+.hc-ic{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--ts);color:var(--tc)}.hc-ic svg.i{width:21px;height:21px}
+.hc-t{flex:1;min-width:0}.hc-t h3{margin:0;font-size:16px;line-height:1.3;color:var(--ink);font-weight:700}.hc-t p{margin:2px 0 0;font-size:13px;color:var(--muted);line-height:1.35}
+.hc-go{flex:none;width:30px;height:30px;border-radius:50%;border:0;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer}.hc-go:hover{background:var(--raise);color:var(--brand)}.hc-go svg.i{width:18px;height:18px;transform:rotate(-90deg)}
+.hc-v{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;margin-top:6px}
+.hc-v b{font-size:40px;line-height:1.05;font-weight:750;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums}.hc-v>span{font-size:14px;font-weight:600;color:var(--muted)}
+.hc-d{margin-left:auto;display:inline-flex;align-items:baseline;gap:6px;font-size:14px;font-weight:700;white-space:nowrap}.hc-d small{font-size:12px;font-weight:500;color:var(--muted)}.hc-d.ok{color:var(--ok)}.hc-d.bad{color:var(--red)}.hc-d.flat{color:var(--muted);font-weight:600}
+.hc-pill{align-self:flex-start;padding:5px 14px;border-radius:999px;background:var(--ts);color:var(--tc);font-size:13px;font-weight:650}
+.hc-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line2)}.hc-bar i{display:block;height:100%}.hc-bar .s1{background:var(--ok)}.hc-bar .s2{background:var(--info)}.hc-bar .s3{background:var(--red)}
+.hc-split{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line2);padding-top:14px;margin-top:2px}.hc-split.t{margin-top:0}
+.hc-split>div{display:grid;gap:3px;align-content:start;padding:0 14px;min-width:0}.hc-split>div:first-child{padding-left:0}.hc-split>div+div{border-left:1px solid var(--line2)}
+.hc-k{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);white-space:nowrap}.hc-k i{width:9px;height:9px;border-radius:50%;flex:none}
+.hc-k .d1{background:var(--ok)}.hc-k .d2{background:var(--info)}.hc-k .d3{background:var(--info)}.hc-k .d4{background:var(--red)}.hc-k .d5{background:var(--amber)}
+.hc-split b{font-size:22px;line-height:1.15;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}.hc-split small{font-size:12.5px;color:var(--muted)}
+.hc-sp{display:block;width:100%;height:76px;margin-top:auto}.hc-sp .a{fill:color-mix(in srgb,var(--tc) 14%,transparent)}.hc-sp .l{fill:none;stroke:var(--tc);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.hc-list{border-top:1px solid var(--line2);padding-top:12px;display:grid;gap:2px}
+.hc-lh{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--muted);margin-bottom:4px}.hc-lh b{color:var(--ink);font-size:14px}
+.hc-li{display:flex;justify-content:space-between;gap:12px;align-items:center;width:100%;text-align:left;padding:7px 8px;margin:0 -8px;border:0;border-radius:8px;background:none;color:var(--text);font:inherit;cursor:pointer}
+.hc-li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hc-li b{flex:none;color:var(--ok);font-variant-numeric:tabular-nums}.hc-li:hover{background:var(--raise)}
+.hc-none{margin:0;font-size:13.5px;color:var(--muted)}
+@media (max-width:1180px){.hc-row{grid-template-columns:repeat(2,minmax(0,1fr))}.hc-row>.hc:last-child{grid-column:1/-1}}
+@media (max-width:720px){.hc-row{grid-template-columns:minmax(0,1fr)}.hc-v b{font-size:34px}}
+/* KPI strip: separate cards */
+.rc-ks{background:none;border:0;border-radius:0;overflow:visible;gap:12px}
+.rc-ks .rk{background:var(--panel);border:1px solid var(--line)!important;border-radius:16px;padding:16px 18px 14px}
+.rc-ks .rk-l{font-size:13px}.rc-ks .rk-l svg.i{width:30px;height:30px;padding:7px;border-radius:50%;background:var(--brand-soft);color:var(--brand)}
+.rc-ks .rk.bad .rk-l svg.i{background:var(--red-soft);color:var(--red)}.rc-ks .rk.warn .rk-l svg.i{background:var(--amber-soft);color:var(--amber)}
+.rc-ks .rk-v{font-size:30px}
+.rc-ks .rk .info{top:12px;right:12px}
+</style>`);
+/* ---- Reports: KPI cards for every tab, plus overview cards for FSK, Negotiation Bot and Contracts ---- */
+rcK=function(o){const{icon,label,v,info,tone,drill,sub,delta,pct}=o;
+ const inner=`<span class="kc-top"><span class="kc-ic" aria-hidden="true">${ico(icon)}</span><span class="kc-t"><b>${esc(label)}</b>${sub?`<small>${sub}</small>`:""}</span></span><span class="kc-v"><b class="rk-v">${v}</b>${delta||""}</span>${pct!=null?`<span class="rk-pb" aria-hidden="true"><i style="width:${Math.min(100,pct)}%"></i></span>`:""}`;
+ return`<div class="rk kc ${tone||""}">${drill?`<button type="button" class="rk-m" data-rp="drill" data-v="${esc(drill)}" aria-pressed="${RP.drill===drill}">${inner}</button>`:`<div class="rk-m">${inner}</div>`}${info?infoHTML(info,"About "+label):""}</div>`};
+const hcRow=cards=>cards.length?`<section class="hc-row" style="--hn:${cards.length}" aria-label="Overview">${cards.join("")}</section>`:"";
+const hcSegBar=(segs,label)=>{const t=segs.reduce((a,x)=>a+x[0],0)||1;return`<div class="hc-bar" role="img" aria-label="${esc(label)}">${segs.filter(x=>x[0]>0).map(x=>`<i style="width:${(x[0]/t*100).toFixed(1)}%;background:var(${x[1]})"></i>`).join("")}</div>`};
+const hcSplit=(a,b,cls)=>`<div class="hc-split${cls?" "+cls:""}">${[a,b].map(x=>`<div><span class="hc-k"><i style="background:var(${x[0]})"></i>${esc(x[1])}</span><b>${x[2]}</b><small>${esc(x[3])}</small></div>`).join("")}</div>`;
+function rpHeroFsk(V,prog,def,closed,failed,SB,cu,pv,per,e,dd){
+ const c2=hcCard({icon:"check",tone:"t-ok",title:"Decisions this period",sub:`Approved or rejected in the last ${per}`,value:RCN(closed.length),unit:"approved",delta:hcDelta(cu.a,pv.a,"vs "+per+" ago",true),pill:`${RCN(failed.length)} rejected`,chev:"closed",
+  body:hcSplit(["--ok","Approved",RCN(closed.length),"or confirmed not required"],["--red","Rejected",RCN(failed.length),"by the forum"])+rcSpark(SB.map(x=>x.a),"Approvals per period")});
+ const sub=c=>{const h=(c.hist||[]).find(x=>/submitted/i.test(x.action||""));return h?h.d:""};
+ const dn=V.filter(c=>["APPROVED","NOT_REQUIRED","REJECTED"].includes(c.status)&&sub(c)&&dd(c)).map(c=>wdBetween(e,sub(c),dd(c)));
+ const avg=dn.length?Math.round(dn.reduce((a,b)=>a+b,0)/dn.length):0;
+ const wt=prog.filter(c=>sub(c)).map(c=>({c,d:wdBetween(e,sub(c),today())})).sort((a,b)=>b.d-a.d);const old=wt[0];
+ const c3=hcCard({icon:"timer",tone:"t-warn",title:"Time to decision",sub:"Working days from submission to the forum decision",value:dn.length?RCN(avg):"—",unit:dn.length?"days on average":"",pill:dn.length?`${plural(dn.length,"decided request")}`:"No decided request yet",
+  body:hcSplit(["--amber","Longest waiting",old?RCN(old.d)+" days":"—",old?fkNo(old.c):"nothing waiting"],["--info","Decided so far",RCN(dn.length),"approved or rejected"])});
+ return hcRow([c2,c3])}
+function rpHeroNb(k,k2,per,L){const prev=x=>Math.max(0,k2[x]-k[x]);const ini=k.ini,neg=k.neg,sv=k.saving,pct=k.pct;
+ const c1=hcCard({icon:"coin",tone:"t-ok",title:"Negotiation savings",sub:"Lowest initial total against the agreed total",value:sv?inrShort(sv):"₹ 0",pill:sv?`${pct}% below the initial offers`:"No handed-over negotiation in the period",
+  body:sv?hcSegBar([[neg,"--ok"],[sv,"--info"]],`Agreed ${Math.round(100-pct)} percent, saved ${Math.round(pct)} percent`)+hcSplit(["--info","Initial total",inrShort(ini),"handed-over requests"],["--ok","Agreed total",inrShort(neg),`${Math.round(100-pct)}% of initial`]):`<p class="hc-none">Savings show here once the bot hands a negotiation over to the Buyer.</p>`});
+ const tot=k.completed+k.failed+k.excluded+k.open;
+ const c2=hcCard({icon:"nb",tone:"t-info",title:"Bot outcomes",sub:`Requests handled, last ${per}`,value:RCN(k.completed),unit:"handed over to the Buyer",delta:hcDelta(k.completed,prev("completed"),"vs "+per+" ago",true),pill:`${RCN(k.open)} still in progress`,
+  body:hcSegBar([[k.completed,"--ok"],[k.open,"--info"],[k.excluded,"--sOther"],[k.failed,"--red"]],`${k.completed} handed over, ${k.open} in progress, ${k.excluded} excluded, ${k.failed} failed`)+hcSplit(["--ok","Handed over",RCN(k.completed),"agreed by the bot"],["--red","Failed",RCN(k.failed),"no agreement"])+hcSplit(["--sOther","Excluded",RCN(k.excluded),"left out of the bot"],["--amber","Escalations",RCN(k.escal),"guardrail alerts"],"t")});
+ return hcRow([c1,c2])}
+function rpHeroCtr(L,mon,C,exp0,expd,val){const bk=[...INC10.bk.map(b=>b[0]),"EXP"];const wCol={B0:"--s5",B6:"--s6",B8:"--s3",B12:"--s1",EXP:"--red"};
+ const vIn=c=>+c.value_inr||0;const tot=mon.reduce((a,c)=>a+vIn(c),0);
+ const byB=bk.map(b=>[mon.filter(c=>crBucket(c)===b).reduce((a,c)=>a+vIn(c),0),wCol[b]||"--sOther"]);
+ const v0=mon.filter(c=>crBucket(c)==="B0").reduce((a,c)=>a+vIn(c),0),ve=mon.filter(c=>crBucket(c)==="EXP").reduce((a,c)=>a+vIn(c),0);
+ const c1=hcCard({icon:"contract",tone:"t-info",title:"Contract value",sub:"Active frame and scrap contracts you can see",value:inrShort(tot),pill:`${plural(mon.length,"contract")} not yet renewed`,
+  body:hcSegBar(byB,"Contract value by expiry window")+hcSplit(["--s5","Ending in 0-6 months",inrShort(v0),plural(exp0,"contract")],["--red","Expired",inrShort(ve),plural(expd,"contract")])});
+ const inrC=x=>x.c.currency==="INR"?(+x.c.value_in_currency||0):((p6Inr(+x.c.value_in_currency||0,x.c.currency)||{inr:0}).inr);const cv=C.reduce((a,x)=>a+inrC(x),0);
+ const oldest=C.length?Math.max(...C.map(x=>x.age)):0,avg=C.length?Math.round(C.reduce((a,x)=>a+x.age,0)/C.length):0;
+ const c2=hcCard({icon:"upload",tone:"t-warn",title:"Open shopping carts",sub:"From the latest open-cart upload",value:inrShort(cv),pill:`${plural(C.length,"cart")} waiting`,
+  body:hcSplit(["--amber","Oldest cart",C.length?RCN(oldest)+" days":"—","since it was created"],["--info","Average age",C.length?RCN(avg)+" days":"—","across open carts"])});
+ return hcRow([c1,c2])}
+document.head.insertAdjacentHTML("beforeend",`<style id="kccss">
+.hc-row{grid-template-columns:repeat(var(--hn,3),minmax(0,1fr))}
+@media (max-width:1180px){.hc-row{grid-template-columns:repeat(2,minmax(0,1fr))}.hc-row>.hc:last-child:nth-child(odd){grid-column:1/-1}}
+@media (max-width:720px){.hc-row{grid-template-columns:minmax(0,1fr)}}
+.rc-ks{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))!important;gap:14px!important;background:none;border:0;border-radius:0;overflow:visible}
+.rc-ks .rk{grid-column:auto!important;border-left:0}
+.rc-ks .rk.kc{background:var(--panel);border:1px solid var(--line)!important;border-radius:18px;padding:18px 20px 16px}
+.kc .rk-m{gap:0}
+.kc-top{display:flex;align-items:center;gap:12px;padding-right:26px;min-width:0}
+.kc-ic{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand)}.kc-ic svg.i{width:20px;height:20px}
+.kc.bad .kc-ic{background:var(--red-soft);color:var(--red)}.kc.warn .kc-ic{background:var(--amber-soft);color:var(--amber)}
+.kc-t{min-width:0}.kc-t b{display:block;font-size:14.5px;font-weight:650;color:var(--ink);line-height:1.25}.kc-t small{display:block;margin-top:1px;font-size:12.5px;color:var(--muted);line-height:1.3}
+.kc-v{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;margin-top:12px}
+.rk.kc .rk-v{font-size:34px;line-height:1.05;font-weight:700;letter-spacing:-.02em}
+.kc .rk-d{margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--raise);font-size:12.5px}.kc .rk-d.ok{background:var(--ok-soft)}.kc .rk-d.bad{background:var(--red-soft)}
+.kc .rk-pb{margin-top:12px;height:6px;border-radius:3px}
+.rc-ks .rk.kc .info{top:14px;right:14px}
+button.rk-m[aria-pressed="true"]{outline:0}.rk.kc:has(button.rk-m[aria-pressed="true"]){border-color:var(--brand)!important;box-shadow:0 0 0 1px var(--brand)}
+.rk.kc:has(button.rk-m:hover){border-color:var(--brand)!important}
+</style>`);
 /* ---- GP pipeline ---- */
 rpGpHTML=function(){const X=rpGpSets();const{L,P,open}=X;const per=RP.per==="MONTHLY"?"30 days":"7 days";const B=rcBuckets(P),N=B.length;
  const stat=b=>{const cl=L.filter(r=>r.status==="CLOSED"&&rpIn(r.closed,b)),dc=L.filter(r=>r.status==="DECLINED"&&rpIn(r.closed,b)),cy=cl.map(r=>wdBetween(r.entity,r.created,r.closed));
@@ -8664,7 +8813,7 @@ rpGpHTML=function(){const X=rpGpSets();const{L,P,open}=X;const per=RP.per==="MON
  const by=rpGroup(L,r=>r.buyer||"\u2014");const mxO=Math.max(1,...by.map(([,v])=>v.filter(isOpen).length));
  const cBuy=rcCard({id:"rcBuy",title:"Workload by Buyer",sub:"Open requests per Buyer; the red part is overdue. Closed and declined cover the selected period.",cls:"wide",
   body:rcTable(["Buyer","Open requests","Overdue",`Closed ${P.lab}`,`Declined ${P.lab}`],by.map(([k,v])=>{const o=v.filter(isOpen),ov=o.filter(r=>timing(r).over).length;return[`<button class="linkbtn" data-rp="drill" data-v="buyer:${esc(k)}">${esc(k==="\u2014"?"Not assigned":uName(k)||k)}</button>`,`<span class="rc-cellbar"><span class="rc-mb">${o.length-ov?`<i style="width:${((o.length-ov)/mxO*100).toFixed(1)}%;background:var(--s1)"></i>`:""}${ov?`<i style="width:${(ov/mxO*100).toFixed(1)}%;background:var(--red)"></i>`:""}</span><b>${o.length}</b></span>`,ov?`<b class="rc-red">${ov}</b>`:"0",RCN(v.filter(r=>X.closed.includes(r)).length),RCN(v.filter(r=>X.failed.includes(r)).length)]}),true)});
- return`${kp}${dOpen?rpCaseTable(dOpen[0],dOpen[1],"gp"):""}
+ return`${rpHeroGP(X,B,cur,prv,per)}${kp}${dOpen?rpCaseTable(dOpen[0],dOpen[1],"gp"):""}
  <div class="rc-grid"><div class="rc-main">${cTime}</div><div class="rc-side">${cAge}${cFlow}</div></div>
  <div class="rc-grid"><div class="rc-main">${cStep}</div><div class="rc-side">${cCat}${cBand}</div></div>
  ${cBuy}`};
@@ -8680,10 +8829,7 @@ rpFskHTML=function(){const V=DB.fskcase.filter(c=>fkVisible(c));const P=rpPer();
  const d=RP.drill&&RP.drill.startsWith("st:")?[FSK_ST[RP.drill.slice(3)]||RP.drill.slice(3),V.filter(c=>c.status===RP.drill.slice(3))]:sets[RP.drill];
  const kp=rcKS([
   rcK({icon:"fsk",label:"In progress",v:RCN(prog.length),drill:"prog",sub:"before a decision",info:`<h5>In progress</h5><p>FSK requests that are submitted but not yet approved, rejected or draft. Snapshot as of today.</p>`}),
-  rcK({icon:"clock",label:"Deferred",v:RCN(def.length),tone:def.length?"warn":"",drill:"def",sub:"wait for the next agenda",info:`<h5>Deferred</h5><p>Requests the forum deferred; they return on a later agenda.</p>`}),
-  rcK({icon:"list",label:"All requests",v:RCN(V.length),drill:"all",sub:"you can see",info:`<h5>All requests</h5><p>Every FSK request visible to your role in this entity.</p>`}),
-  rcK({icon:"check",label:"Approved",v:RCN(closed.length),drill:"closed",sep:true,delta:rcDelta(cu.a,pv.a,"up",per),sub:"or not required",info:`<h5>Approved</h5><p>FSK requests approved, or confirmed as not requiring FSK, in the last ${per}.</p>`}),
-  rcK({icon:"x",label:"Rejected",v:RCN(failed.length),tone:failed.length?"bad":"",drill:"failed",delta:rcDelta(cu.r,pv.r,"down",per),sub:"by the forum",info:`<h5>Rejected</h5><p>FSK requests rejected in the last ${per}.</p>`})]);
+  rcK({icon:"clock",label:"Deferred",v:RCN(def.length),tone:def.length?"warn":"",drill:"def",sub:"wait for the next agenda",info:`<h5>Deferred</h5><p>Requests the forum deferred; they return on a later agenda.</p>`})]);
  const stc=Object.entries(V.reduce((m,c)=>(m[c.status]=(m[c.status]||0)+1,m),{})).sort((a,b)=>b[1]-a[1]);const col=i=>i<5?`--s${i+1}`:"--sOther";const stIdx={};stc.forEach(([k],i)=>stIdx[k]=col(i));
  const cStat=rcCard({id:"fkStat",title:"Requests by status",sub:"Every FSK request you can see. Select a segment to list it.",body:rcDonut(stc.map(([k,n])=>({n,c:stIdx[k],name:FSK_ST[k]||k,attrs:`data-rp="drill" data-v="st:${esc(k)}"`})),{center:"FSK requests",size:156})});
  const fora=[...new Set(V.map(c=>c.required_forum||""))];const keys=stc.map(x=>x[0]);const fName=f=>f?fkCom(e,f):"No forum by value";
@@ -8692,7 +8838,7 @@ rpFskHTML=function(){const V=DB.fskcase.filter(c=>fkVisible(c));const P=rpPer();
   body:rcLegend(stc.slice(0,6).map(([k])=>({c:stIdx[k],n:FSK_ST[k]||k})))+rcHBars(fRows),tbl:rcTable(["Forum",...keys.map(k=>FSK_ST[k]||k),"Total"],fora.map(f=>[esc(fName(f)),...keys.map(k=>RCN(V.filter(c=>(c.required_forum||"")===f&&c.status===k).length)),`<b>${V.filter(c=>(c.required_forum||"")===f).length}</b>`]),true)});
  const up=(DB.fskmeet||[]).filter(m=>m.entity===e&&m.date>=today()&&m.status!=="PROTOCOL").sort((a,b)=>a.date<b.date?-1:1);const mxA=Math.max(1,...up.map(m=>(m.items||[]).length));
  const cMeet=rcCard({id:"fkMeet",title:"Upcoming meetings",sub:"Agenda size per meeting (US-231 AC2).",body:up.length?`<ul class="rc-ml">${up.map(m=>{const dt=new Date(m.date+"T00:00:00Z");return`<li><button type="button" data-rp="meet" data-v="${m._id}" data-tip="${RCT({t:fkCom(e,m.committee),r:[["--s1","Agenda items",(m.items||[]).length]],n:fmtD(m.date)})}"><span class="rc-dt"><b>${dt.getUTCDate()}</b><small>${MON[dt.getUTCMonth()]}</small></span><span class="rc-mt"><b>${esc(fkCom(e,m.committee))}</b><span>${fkMChip(m.status)}</span></span><span class="rc-ma">${rcMicro((m.items||[]).length,mxA,"--s1")}<em>${plural((m.items||[]).length,"item")}</em></span></button></li>`}).join("")}</ul>`:rcEmpty("No meeting planned","New meetings appear here once the FSK Coordinator schedules them.")});
- return`${kp}${d?rcFskTable(d,e):""}
+ return`${rpHeroFsk(V,prog,def,closed,failed,SB,cu,pv,per,e,dd)}${kp}${d?rcFskTable(d,e):""}
  <div class="rc-grid"><div class="rc-main">${cStat}</div><div class="rc-main">${cMeet}</div></div>${cForum}`};
 
 /* ---- Negotiation Bot ---- */
@@ -8717,7 +8863,7 @@ rpNbHTML=function(){const e=S.entity;const P=rpPer();const per=RP.per==="MONTHLY
  const cSent=rcCard({id:"nbSent",title:"KPI reports sent",sub:"Scheduled every Monday (weekly) and on the 1st (monthly), Reminder Rule R-22. Recipients: Buyer, Buyer Supervisor and Department Head (NB-S10).",cls:"wide",
   body:`${snaps.length?rcTable(["Sent","Period","Processed","Closed","Failed","Savings","By"],snaps.map(z=>[esc(z.at),z.period==="MONTHLY"?"Monthly":"Weekly",RCN(z.processed),RCN(z.completed),RCN(z.failed),esc(inr(z.saving)),esc(z.by)]),true):rcEmpty("No report sent yet","The first scheduled report goes out on the next Monday or the 1st.")}
   <div class="actrow" style="margin-top:12px">${typeof nbCan==="function"&&nbCan()?`<button class="btn" data-rp="nbsend" data-v="WEEKLY">${ico("send")}Send weekly report</button><button class="btn" data-rp="nbsend" data-v="MONTHLY">${ico("send")}Send monthly report</button><span class="proto">Prototype only</span>`:""}${canNb?`<button class="btn" data-rp="nbgo">${ico("nb")}Open the Negotiation Bot</button>`:""}</div>`});
- return`${kp}
+ return`${rpHeroNb(k,k2,per,L)}${kp}
  ${dl?`<section class="panel nb-p" id="rpDrill"><div class="nb-ph"><h3>${esc(NB_FUN.find(x=>x[0]===st)?.[1]||st)} <span class="chip">${dl.length}</span></h3><button class="iconbtn" data-rp="drill" data-v="" aria-label="Close the list">${ico("x")}</button></div><div class="tablewrap"><table><thead><tr><th>Tracking no.</th><th>Description</th><th class="num">Value</th><th>Stage</th><th>Next</th></tr></thead><tbody>${dl.map(r=>`<tr><td><button class="linkbtn" data-rp="nbopen" data-v="${r._id}">${esc(r.no)}</button></td><td class="wrap small">${esc(r.topic)}</td><td class="num small">${esc(inr(r.amount))}</td><td>${stChip(nbStageOf(r))}</td><td class="wrap small">${esc(nbNext(r))}</td></tr>`).join("")||'<tr><td colspan="5" class="sub">No request.</td></tr>'}</tbody></table></div></section>`:""}
  <div class="rc-grid"><div class="rc-main">${cPipe}</div><div class="rc-side">${cOut}${cSave}</div></div>${cSent}`};
 
@@ -8747,21 +8893,287 @@ rpCtrHTML=function(){const L=crScope();const e=S.entity;const bk=[...INC10.bk.ma
   body:rcLegend([{c:"--s1",n:"Up to 7 days"},{c:"--s5",n:"8 to 30 days"},{c:"--s2",n:"Over 30 days"}])+rcHBars(brows),
   tbl:rcTable(["Buyer","Carts","Oldest (days)","Average age","Value"],byB.map(([b,v])=>[`<button class="linkbtn" data-rp="drill" data-v="cb:${esc(b)}">${esc(b==="\u2014"?"Not mapped":uName(b)||b)}</button>`,RCN(v.length),RCN(Math.max(...v.map(x=>x.age))),RCN(Math.round(v.reduce((s,x)=>s+x.age,0)/v.length)),esc(inr(v.reduce((s,x)=>s+val(x),0)))]),true)});
  const ag=[0,1,2].map(i=>C.filter(x=>band(x.age)===i).length);const cAge=rcCard({id:"ctAge",title:"Cart ageing",sub:"All open carts by age.",body:rcDonut([{n:ag[0],c:"--s1",name:"Up to 7 days"},{n:ag[1],c:"--s5",name:"8 to 30 days"},{n:ag[2],c:"--s2",name:"Over 30 days"}],{center:"open carts",size:148,unit:"Carts"})});
- return`${kp}${cl?rpCartTable(`Open carts, ${bb==="\u2014"?"Buyer not mapped":uName(bb)}`,cl):""}
+ return`${rpHeroCtr(L,mon,C,exp0,expd,val)}${kp}${cl?rpCartTable(`Open carts, ${bb==="\u2014"?"Buyer not mapped":uName(bb)}`,cl):""}
  <div class="rc-grid rc-even"><div class="rc-main">${cWin}</div><div class="rc-main">${cStat}</div></div><div class="rc-grid"><div class="rc-main">${cCart}</div><div class="rc-main">${cAge}</div></div>`};
 
 /* ---- Queries ---- */
 rpQHTML=function(){const C=qCarts();const R=qRfqs(RP.qstep);const all=qRfqs("");const X=qExpiring(RP.qn);const steps=[...new Set(all.map(r=>+r.step))].sort((a,b)=>a-b);
- const tiles=rcKS([
-  rcK({icon:"upload",label:"Pending shopping carts",v:RCN(C.length),sub:"open carts",info:`<h5>Pending shopping carts</h5><p>Open carts from the latest upload. Answers without building a report (GP step 41); the same questions work in the AIS Assistant.</p>`}),
-  rcK({icon:"doc",label:"Pending RFQs",v:RCN(all.length),sub:R.length!==all.length?`${R.length} at the step shown`:"High budget and scrap",info:`<h5>Pending RFQs</h5><p>Open High budget and Scrap requests, by step.</p>`}),
-  rcK({icon:"contract",label:`Contracts expiring in ${RP.qn} months`,v:RCN(X.length),sub:"monitored contracts",tone:X.length?"warn":"",info:`<h5>Expiring contracts</h5><p>Monitored contracts ending inside the chosen number of months.</p>`})]);
+ const tiles=scGrid([
+  scCard({icon:"upload",label:"Pending shopping carts",v:RCN(C.length),cap:"open carts",info:`<h5>Pending shopping carts</h5><p>Open carts from the latest upload. Answers without building a report (GP step 41); the same questions work in the AIS Assistant.</p>`}),
+  scCard({icon:"doc",label:"Pending RFQs",v:RCN(all.length),cap:R.length!==all.length?`${R.length} at the step shown`:"High budget and Scrap",info:`<h5>Pending RFQs</h5><p>Open High budget and Scrap requests, by step.</p>`}),
+  scCard({icon:"contract",label:`Expiring in ${RP.qn} months`,v:RCN(X.length),tone:X.length?"warn":"",cap:"monitored contracts",info:`<h5>Expiring contracts</h5><p>Monitored contracts ending inside the chosen number of months.</p>`})]);
  const cart=rcCard({id:"qCart",title:`Pending shopping carts <span class="chip">${C.length}</span>`,cls:"wide",act:`<button class="btn" data-rp="csv" data-v="carts">${ico("download")}Export CSV</button>`,body:rpCartRows(C)});
  const rfq=rcCard({id:"qRfq",title:`Pending RFQs by step <span class="chip">${R.length}</span>`,cls:"wide",act:`<span class="rc-fl"><label for="rp_qs">Step</label><select id="rp_qs"><option value="">All steps</option>${steps.map(n=>`<option value="${n}" ${+RP.qstep===n?"selected":""}>${n} ${esc(stepRow("GP",n)?.name||"")} (${all.filter(r=>+r.step===n).length})</option>`).join("")}</select></span><button class="btn" data-rp="csv" data-v="rfq">${ico("download")}Export CSV</button>`,
   body:`<div class="tablewrap"><table><thead><tr><th>Request</th><th>Topic</th><th>Step</th><th>With</th><th>Due</th><th>Globe no.</th></tr></thead><tbody>${R.map(r=>{const w=whoAt(r),tm=timing(r);return`<tr><td><button class="linkbtn" data-case="${r._id}">${esc(r.no)}</button></td><td class="wrap small">${esc(r.topic)}</td><td class="small"><b>${r.step}</b> ${esc(stepRow("GP",r.step)?.name||"")}</td><td class="small">${esc(w.task.map(roleName).join(", ")||"AIS")}</td><td class="small ${tm.over?"due-over":""}">${esc(dueText(tm))}</td><td class="small">${esc(r.globe||"\u2014")}</td></tr>`}).join("")||'<tr><td colspan="6" class="sub">No pending RFQ.</td></tr>'}</tbody></table></div>`});
  const ctr=rcCard({id:"qCtr",title:`Contracts expiring in the next <input id="rp_qn" type="number" min="1" max="36" value="${esc(RP.qn)}" aria-label="Months" class="rc-num"> months <span class="chip">${X.length}</span>`,cls:"wide",act:`<button class="btn" data-rp="csv" data-v="exp">${ico("download")}Export CSV</button>`,
   body:`<div class="tablewrap"><table><thead><tr><th>Contract</th><th>Type</th><th>Supplier</th><th>Request</th><th>End</th><th>Status</th><th>Next reminder</th></tr></thead><tbody>${X.map(c=>{const r=crReq(c);return`<tr><td><button class="linkbtn" data-ctr="${esc(c.contract_id)}">${esc(c.contract_id)}</button></td><td class="small">${esc(INC10.ctype[c.contract_type])}</td><td class="small">${esc(c.supplier_name)}</td><td class="small">${r?`<button class="linkbtn" data-case="${r._id}">${esc(r.no)}</button>`:"\u2014"}</td><td class="small">${esc(fmtD(c.end_date))}</td><td><div class="stk">${crChip(c)}</div></td><td class="small">${esc(fmtD(crNext(c)))||"\u2014"}</td></tr>`}).join("")||'<tr><td colspan="7" class="sub">No contract ends in that window.</td></tr>'}</tbody></table></div>`});
  return`${tiles}${cart}${rfq}${ctr}`};
+/* ======================================================================
+   Reports v3. One question per visual: scorecards with a trend, then trends,
+   then where things sit, then the detail. No figure is shown twice on a tab.
+   ====================================================================== */
+const scD=(cur,prev,good,mode)=>{if(prev==null)return"";const d=cur-prev;if(d===0)return`<span class="sc-d flat" data-tip="Same as the period before">– no change</span>`;
+ const up=d>0,cls=good==="up"?(up?"ok":"bad"):good==="down"?(up?"bad":"ok"):"flat";const txt=mode==="pct"&&prev?Math.abs(Math.round(d/prev*100))+"%":RCN(Math.abs(d));
+ return`<span class="sc-d ${cls}" data-tip="${esc(mode==="pct"?"Change against the period before":RCN(prev)+" in the period before")}">${up?"▲":"▼"} ${txt}</span>`};
+function scSpark(vals,color){const n=vals.length;if(n<2||!vals.some(v=>v>0))return"";const mn=Math.min(...vals,0),mx=Math.max(...vals),rg=(mx-mn)||1;
+ const X=i=>i/(n-1)*100,Y=v=>34-((v-mn)/rg)*30;const d=vals.map((v,i)=>`${i?"L":"M"}${X(i).toFixed(2)} ${Y(v).toFixed(2)}`).join(" ");
+ return`<svg class="sc-sp" style="--tc:var(${color||"--s1"})" viewBox="0 0 100 38" preserveAspectRatio="none" aria-hidden="true"><path d="${d} L100 38 L0 38 Z" class="a"/><path d="${d}" class="l" vector-effect="non-scaling-stroke"/></svg>`}
+function scCard(o){const{icon,label,v,tone,drill,cap,delta,spark,color,meter,info}=o;
+ const inner=`<span class="sc-l">${icon?ico(icon):""}<span>${esc(label)}</span></span><span class="sc-v"><b>${v}</b>${delta||""}</span>${cap?`<span class="sc-c">${cap}</span>`:""}${meter!=null?`<span class="sc-m" aria-hidden="true"><i style="width:${Math.min(100,Math.max(0,meter))}%"></i></span>`:""}${spark?scSpark(spark,color):""}`;
+ return`<div class="sc ${tone||""}">${drill?`<button type="button" class="sc-b" data-rp="drill" data-v="${esc(drill)}" aria-pressed="${RP.drill===drill}">${inner}</button>`:`<div class="sc-b">${inner}</div>`}</div>`}
+const scGrid=cards=>`<section class="sc-grid" style="--cn:${cards.length}">${cards.join("")}</section>`;
+const bsec=(t,s)=>`<h2 class="bi-sec">${esc(t)}${s?`<small>${esc(s)}</small>`:""}</h2>`;
+const rpSavings=L=>{const sav=[];L.forEach(r=>{let ini=null,neg=null;
+  if(r.neg&&r.neg.submitted){const aw=(r.offers||[]).find(x=>x.id===r.neg.award);if(aw){const t=p6Inr(aw.amount,aw.currency||r.currency);ini=t?t.inr:null;neg=p6NegInr(r)}}
+  else if(r.lb&&r.lb.cmp&&r.lb.cmp.status==="APPROVED"&&r.lb.cmp.award){const T0=lbTotals(r.lb.cmp,false),T1=lbTotals(r.lb.cmp,true);ini=T0[r.lb.cmp.award];neg=T1[r.lb.cmp.award]}
+  if(ini>0&&neg>0&&ini>neg)sav.push({r,ini,neg,save:ini-neg})});
+ const save=sav.reduce((a,x)=>a+x.save,0),ini=sav.reduce((a,x)=>a+x.ini,0);return{sav,save,ini,neg:ini-save,pct:ini?save/ini*100:0}};
+const rpPeriodWord=()=>RP.per==="MONTHLY"?"months":"weeks";
+
+/* ---- GP pipeline ---- */
+rpGpHTML=function(){const X=rpGpSets();const{L,P,open}=X;const per=RP.per==="MONTHLY"?"30 days":"7 days";const B=rcBuckets(P),N=B.length;
+ const ST=B.map(b=>{const cl=L.filter(r=>r.status==="CLOSED"&&rpIn(r.closed,b)),dc=L.filter(r=>r.status==="DECLINED"&&rpIn(r.closed,b)),cy=cl.map(r=>wdBetween(r.entity,r.created,r.closed));
+  const op=L.filter(r=>r.created<=b.to&&(isOpen(r)||(r.closed&&r.closed>b.to)));
+  return{raised:L.filter(r=>rpIn(r.created,b)).length,closed:cl.length,declined:dc.length,avg:cy.length?Math.round(cy.reduce((a,c)=>a+c,0)/cy.length):0,n:cy.length,open:op.length,val:op.reduce((a,r)=>a+rpInrOf(r),0)}});
+ const cur=ST[N-1],prv=ST[N-2];const dOpen=rpGpDrill(RP.drill,X);const pctO=n=>rcPct(n,open.length);const sv=rpSavings(L);const vOpen=open.reduce((a,r)=>a+rpInrOf(r),0);
+ const cards=scGrid([
+  scCard({icon:"gp",label:"Open requests",v:RCN(open.length),delta:scD(cur.open,prv.open,null),spark:ST.map(s=>s.open),color:"--s1",cap:"in progress now",info:`<h5>Open requests</h5><p>Every open GP request you can see (not draft, closed or declined). The line shows the count at the end of each ${per==="30 days"?"month":"week"}.</p>`}),
+  scCard({icon:"coin",label:"Pipeline value",v:inrShort(vOpen),delta:scD(cur.val,prv.val,null,"pct"),spark:ST.map(s=>s.val),color:"--s3",cap:`budget of ${plural(open.length,"open request")}`,info:`<h5>Pipeline value</h5><p>Total budget of the open requests, converted to INR. The line shows the same total at the end of each period.</p>`}),
+  scCard({icon:"alert",label:"Overdue at step",v:RCN(X.over.length),tone:X.over.length?"bad":"",meter:pctO(X.over.length),cap:`${pctO(X.over.length)}% of open · ${RCN(X.late.length)} behind timeline`,info:`<h5>Overdue at step</h5><p>Open requests past the standard turnaround of their current step, on the working calendar. Behind timeline counts requests whose forecast finish is later than planned.</p>`}),
+  scCard({icon:"check",label:"Closed",v:RCN(X.closed.length),delta:scD(cur.closed,prv.closed,"up"),spark:ST.map(s=>s.closed),color:"--s1",cap:`last ${per} · ${RCN(X.nw.length)} raised, ${RCN(X.failed.length)} declined`,info:`<h5>Closed</h5><p>Requests closed in the last ${per}. The line shows closings per period.</p>`}),
+  scCard({icon:"timer",label:"Avg. days to close",v:cur.n?RCN(cur.avg):"—",delta:cur.n&&prv.n?scD(cur.avg,prv.avg,"down"):"",spark:ST.map(s=>s.avg),color:"--s5",cap:cur.n?`${plural(cur.n,"request")} closed`:"none closed in the period",info:`<h5>Average working days to close</h5><p>Working days from creation to closing for requests closed in the period, on the entity calendar.</p>`}),
+  scCard({icon:"trend",label:"Negotiation savings",v:sv.sav.length?inrShort(sv.save):"₹ 0",tone:"",meter:sv.pct,cap:sv.sav.length?`${sv.pct.toFixed(1)}% below the initial offers`:"no negotiated request yet",info:`<h5>Negotiation savings</h5><p>Initial offer of the awarded supplier minus the agreed price, across ${plural(sv.sav.length,"negotiated request")}.</p>`})]);
+ const cThru=rcCard({id:"rcThru",title:"Raised, closed and declined",sub:`Requests per ${per==="30 days"?"month":"week"}. Compare the green and blue bars: the pipeline grows when more is raised than closed.`,body:rcLegend([{c:"--s3",n:"Raised"},{c:"--s1",n:"Closed"},{c:"--red",n:"Declined"}])+rcCols(B.map((b,i)=>({l:b.l,full:b.full,v:[ST[i].raised,ST[i].closed,ST[i].declined]})),[{n:"Raised",c:"--s3"},{n:"Closed",c:"--s1"},{n:"Declined",c:"--red"}],230),
+  tbl:rcTable(["Period ending","Raised","Closed","Declined"],B.map((b,i)=>[esc(b.full),RCN(ST[i].raised),RCN(ST[i].closed),RCN(ST[i].declined)]),true)});
+ const cats=B.map((b,i)=>({l:b.l,full:b.full,y:ST[i].open,rows:[["--s1","Open at period end",ST[i].open],[null,"Raised in the period",ST[i].raised],[null,"Closed in the period",ST[i].closed],[null,"Declined in the period",ST[i].declined]]}));
+ const cTime=rcCard({id:"rcTime",title:"Open pipeline over time",sub:"Requests still open at the end of each period.",info:`<h5>How to read</h5><p>A rising line means more requests are being raised than closed. The last point is today's open count.</p>`,body:rcLine(cats,"--s1",230),
+  tbl:rcTable(["Period ending","Open at end","Raised","Closed","Declined"],B.map((b,i)=>[esc(b.full),RCN(ST[i].open),RCN(ST[i].raised),RCN(ST[i].closed),RCN(ST[i].declined)]),true)});
+ const stp=rpGroup(open,r=>String(r.step)).map(([k,v])=>({k,v,ov:v.filter(r=>timing(r).over).length}));const top=stp.slice(0,10),rest=stp.slice(10);
+ const rows=top.map(({k,v,ov})=>({badge:k,l:stepRow("GP",k)?.name||"Step "+k,full:`Step ${k}, ${stepRow("GP",k)?.name||""}`,segs:[{n:v.length-ov,c:"--s1",name:"On time"},{n:ov,c:"--red",name:"Overdue"}]}));const restN=rest.reduce((a,x)=>a+x.v.length,0);
+ const cStep=rcCard({id:"rcStep",title:"Open requests by step",sub:"Where the open pipeline is sitting. Select a bar to list its requests.",info:`<h5>Open by step</h5><p>Count of open requests at each process step. The red part is overdue against the step's standard turnaround.</p>`,
+  body:rcLegend([{c:"--s1",n:"On time"},{c:"--red",n:"Overdue"}])+rcHBars(rows)+(rest.length?`<p class="fine rc-more">${plural(rest.length,"more step")} hold ${plural(restN,"request")}. Switch to the table view to see every step.</p>`:""),
+  tbl:rcTable(["Step","Open","Overdue"],stp.map(x=>[`${x.k} ${esc(stepRow("GP",x.k)?.name||"")}`,RCN(x.v.length),RCN(x.ov)]),true)});
+ const age=[0,0,0];open.forEach(r=>{const a=timing(r).age;age[a<=1?0:a<=3?1:2]++});
+ const cAge=rcCard({id:"rcAge",title:"Ageing at the current step",sub:"Working days each open request has sat at its step.",body:rcHBars(["0 to 1 days","2 to 3 days","4 or more days"].map((l,i)=>({l,segs:[{n:age[i],c:["--s1","--s5","--red"][i],name:l}]})),Math.max(1,...age))});
+ const fl=rpGroup(open,r=>r.flow);const cFlow=rcCard({id:"rcFlow",title:"Open requests by flow",sub:"Share of the open pipeline.",info:`<h5>Flows</h5><p>High budget (from EUR 50,000), Low budget and Scrap follow different routes.</p>`,
+  body:rcDonut(fl.map(([k,v])=>({n:v.length,c:rcFlowC[k]||"--sOther",name:FLOW_LBL[k]||k})),{center:"open requests",size:140})});
+ const valRows=(groups,key,nameOf,col)=>{const mx=Math.max(1,...groups.map(([,v])=>v.reduce((a,r)=>a+rpInrOf(r),0)));return groups.map(([k,v],i)=>{const t=v.reduce((a,r)=>a+rpInrOf(r),0);return{l:nameOf(k),segs:[{n:t,c:col(i),name:"Budget"}],vt:`${inrShort(t)} · ${v.length}`,note:plural(v.length,"open request")}}).sort((a,b)=>b.segs[0].n-a.segs[0].n)};
+ const cat=rpGroup(open,r=>r.category);const cCol=["--s1","--s2","--s3","--s4","--s5","--s6"];
+ const cCat=rcCard({id:"rcCat",title:"Open pipeline value by category",sub:"Budget of the open requests; the number after the dot is the request count.",body:rcHBars(valRows(cat,"ocat",k=>DB.category.find(c=>c.code===k)?.label||k,i=>cCol[i]||"--sOther"))});
+ const bandL=k=>{const b=DB.budget?.find?.(x=>x.code===k&&x.entity===S.entity);return b?`${k} ${b.label||""}`.trim():k};const bd=rpGroup(open,r=>r.band||"—");
+ const cBand=rcCard({id:"rcBand",title:"Open pipeline value by budget band",sub:"The value band decides the flow and the approvers.",body:rcHBars(valRows(bd,"oband",bandL,i=>cCol[(i+3)%6]))});
+ const by=rpGroup(L,r=>r.buyer||"—");const mxO=Math.max(1,...by.map(([,v])=>v.filter(isOpen).length));
+ const cBuy=rcCard({id:"rcBuy",title:"Workload by Buyer",sub:"Open requests per Buyer; the red part is overdue. Closed and declined cover the selected period.",cls:"wide",
+  body:rcTable(["Buyer","Open requests","Overdue",`Closed ${P.lab}`,`Declined ${P.lab}`],by.map(([k,v])=>{const o=v.filter(isOpen),ov=o.filter(r=>timing(r).over).length;return[`<span>${esc(k==="—"?"Not assigned":uName(k)||k)}</span>`,`<span class="rc-cellbar"><span class="rc-mb">${o.length-ov?`<i style="width:${((o.length-ov)/mxO*100).toFixed(1)}%;background:var(--s1)"></i>`:""}${ov?`<i style="width:${(ov/mxO*100).toFixed(1)}%;background:var(--red)"></i>`:""}</span><b>${o.length}</b></span>`,ov?`<b class="rc-red">${ov}</b>`:"0",RCN(v.filter(r=>X.closed.includes(r)).length),RCN(v.filter(r=>X.failed.includes(r)).length)]}),true)});
+ return`${bsec("At a glance",`as of ${fmtD(today())}`)}${cards}${dOpen?rpCaseTable(dOpen[0],dOpen[1],"gp"):""}
+ ${bsec("Trend",`last ${N} ${rpPeriodWord()}`)}<div class="rc-grid rc-even">${cThru}${cTime}</div>
+ ${bsec("Where the pipeline sits")}<div class="rc-grid"><div class="rc-main">${cStep}</div><div class="rc-side">${cAge}${cFlow}</div></div>
+ ${bsec("Value and workload")}<div class="rc-grid rc-even">${cCat}${cBand}</div>${cBuy}`};
+
+/* ---- FSK Portal ---- */
+rpFskHTML=function(){const V=DB.fskcase.filter(c=>fkVisible(c));const P=rpPer();const e=S.entity;const per=RP.per==="MONTHLY"?"30 days":"7 days";
+ const dec=c=>{const h=(c.hist||[]).slice().reverse().find(x=>/(Approved|Rejected|Deferred|Recommended|not required)/i.test(x.action||""));return h?h.d:""};
+ const isApp=c=>["APPROVED","NOT_REQUIRED"].includes(c.status),isRej=c=>c.status==="REJECTED";const dd=c=>dec(c)||c.latest_update;
+ const closed=V.filter(c=>isApp(c)&&rpIn(dd(c),P)),failed=V.filter(c=>isRej(c)&&rpIn(dd(c),P)),prog=V.filter(c=>!["APPROVED","NOT_REQUIRED","REJECTED","DRAFT"].includes(c.status)),def=V.filter(c=>c.status==="DEFERRED");
+ const B=rcBuckets(P),N=B.length;const SB=B.map(b=>({a:V.filter(c=>isApp(c)&&rpIn(dd(c),b)).length,r:V.filter(c=>isRej(c)&&rpIn(dd(c),b)).length}));const cu=SB[N-1],pv=SB[N-2];
+ const sets={closed:["Approved or not required",closed],failed:["Rejected",failed],prog:["In progress",prog],def:["Deferred",def],all:["All FSK requests",V]};
+ const d=RP.drill&&RP.drill.startsWith("st:")?[FSK_ST[RP.drill.slice(3)]||RP.drill.slice(3),V.filter(c=>c.status===RP.drill.slice(3))]:sets[RP.drill];
+ const sub=c=>{const h=(c.hist||[]).find(x=>/submitted/i.test(x.action||""));return h?h.d:""};
+ const dn=V.filter(c=>(isApp(c)||isRej(c))&&sub(c)&&dd(c)).map(c=>wdBetween(e,sub(c),dd(c)));const avg=dn.length?Math.round(dn.reduce((a,b)=>a+b,0)/dn.length):0;
+ const wt=prog.filter(c=>sub(c)).map(c=>({c,d:wdBetween(e,sub(c),today())})).sort((a,b)=>b.d-a.d)[0];
+ const cards=scGrid([
+  scCard({icon:"fsk",label:"In progress",v:RCN(prog.length),cap:"submitted, no decision yet",info:`<h5>In progress</h5><p>FSK requests that are submitted but not yet approved, rejected or draft. Snapshot as of today.</p>`}),
+  scCard({icon:"clock",label:"Deferred",v:RCN(def.length),tone:def.length?"warn":"",cap:"wait for the next agenda",info:`<h5>Deferred</h5><p>Requests the forum deferred; they return on a later agenda.</p>`}),
+  scCard({icon:"check",label:"Approved",v:RCN(closed.length),delta:scD(cu.a,pv.a,"up"),spark:SB.map(x=>x.a),color:"--s1",cap:`last ${per}, or not required`,info:`<h5>Approved</h5><p>FSK requests approved, or confirmed as not requiring FSK, in the last ${per}. The line shows approvals per period.</p>`}),
+  scCard({icon:"x",label:"Rejected",v:RCN(failed.length),tone:failed.length?"bad":"",delta:scD(cu.r,pv.r,"down"),spark:SB.map(x=>x.r),color:"--red",cap:`last ${per}, by the forum`,info:`<h5>Rejected</h5><p>FSK requests rejected in the last ${per}.</p>`}),
+  scCard({icon:"timer",label:"Time to decision",v:dn.length?RCN(avg)+" d":"—",cap:dn.length?`working days, ${plural(dn.length,"decided request")}`:"no decided request yet",info:`<h5>Time to decision</h5><p>Average working days from the first submission to the approval or rejection.</p>`}),
+  scCard({icon:"flag",label:"Longest waiting",v:wt?RCN(wt.d)+" d":"—",tone:wt&&wt.d>20?"warn":"",cap:wt?esc(fkNo(wt.c)):"nothing waiting",info:`<h5>Longest waiting</h5><p>The in-progress request that has waited longest since its first submission, in working days.</p>`})]);
+ const order=["DRAFT","SUBMITTED","READY_FOR_FORUM","SCHEDULED","RECOMMENDED","SCHEDULED_APPROVAL","DEFERRED","APPROVED","NOT_REQUIRED","REJECTED"];const lab=k=>FSK_ST[k]||(k==="NOT_REQUIRED"?"Not required":k);
+ const stCol=k=>k==="DRAFT"?"--sOther":k==="DEFERRED"?"--s5":["APPROVED","NOT_REQUIRED"].includes(k)?"--s1":k==="REJECTED"?"--red":"--s3";
+ const cPipe=rcCard({id:"fkPipe",title:"Requests by stage",sub:"Every FSK request you can see, in process order.",body:rcHBars(order.map(k=>({l:lab(k),segs:[{n:V.filter(c=>c.status===k).length,c:stCol(k),name:lab(k)}]})),Math.max(1,...order.map(k=>V.filter(c=>c.status===k).length))),
+  tbl:rcTable(["Stage","Requests"],order.map(k=>[esc(lab(k)),RCN(V.filter(c=>c.status===k).length)]),true)});
+ const cDec=rcCard({id:"fkDec",title:"Decisions per period",sub:`Approved and rejected per ${per==="30 days"?"month":"week"}.`,body:rcLegend([{c:"--s1",n:"Approved or not required"},{c:"--red",n:"Rejected"}])+rcCols(B.map((b,i)=>({l:b.l,full:b.full,v:[SB[i].a,SB[i].r]})),[{n:"Approved or not required",c:"--s1"},{n:"Rejected",c:"--red"}],220),
+  tbl:rcTable(["Period ending","Approved","Rejected"],B.map((b,i)=>[esc(b.full),RCN(SB[i].a),RCN(SB[i].r)]),true)});
+ const fora=[...new Set(V.map(c=>c.required_forum||""))];const keys=order.filter(k=>V.some(c=>c.status===k));const fName=f=>f?fkCom(e,f):"No forum by value";
+ const fRows=fora.map(f=>({l:fName(f),segs:keys.map(k=>({n:V.filter(c=>(c.required_forum||"")===f&&c.status===k).length,c:stCol(k),name:lab(k)}))})).sort((a,b)=>b.segs.reduce((x,y)=>x+y.n,0)-a.segs.reduce((x,y)=>x+y.n,0));
+ const cForum=rcCard({id:"fkForum",title:"Requests by forum",sub:"Which forum each request needs, coloured by stage.",info:`<h5>Forum</h5><p>The forum follows the service value rules (G-05). A request with no forum by value needs no FSK committee.</p>`,
+  body:rcLegend([{c:"--sOther",n:"Draft"},{c:"--s3",n:"In process"},{c:"--s5",n:"Deferred"},{c:"--s1",n:"Approved"},{c:"--red",n:"Rejected"}])+rcHBars(fRows),tbl:rcTable(["Forum",...keys.map(lab),"Total"],fora.map(f=>[esc(fName(f)),...keys.map(k=>RCN(V.filter(c=>(c.required_forum||"")===f&&c.status===k).length)),`<b>${V.filter(c=>(c.required_forum||"")===f).length}</b>`]),true)});
+ const up=(DB.fskmeet||[]).filter(m=>m.entity===e&&m.date>=today()&&m.status!=="PROTOCOL").sort((a,b)=>a.date<b.date?-1:1);const mxA=Math.max(1,...up.map(m=>(m.items||[]).length));
+ const cMeet=rcCard({id:"fkMeet",title:"Upcoming meetings",sub:"Agenda size per meeting.",body:up.length?`<ul class="rc-ml">${up.map(m=>{const dt=new Date(m.date+"T00:00:00Z");return`<li><button type="button" data-rp="meet" data-v="${m._id}" data-tip="${RCT({t:fkCom(e,m.committee),r:[["--s1","Agenda items",(m.items||[]).length]],n:fmtD(m.date)})}"><span class="rc-dt"><b>${dt.getUTCDate()}</b><small>${MON[dt.getUTCMonth()]}</small></span><span class="rc-mt"><b>${esc(fkCom(e,m.committee))}</b><span>${fkMChip(m.status)}</span></span><span class="rc-ma">${rcMicro((m.items||[]).length,mxA,"--s1")}<em>${plural((m.items||[]).length,"item")}</em></span></button></li>`}).join("")}</ul>`:rcEmpty("No meeting planned","New meetings appear here once the FSK Coordinator schedules them.")});
+ return`${bsec("At a glance",`as of ${fmtD(today())}`)}${cards}${d?rcFskTable(d,e):""}
+ ${bsec("Decisions and meetings")}<div class="rc-grid"><div class="rc-main">${cDec}</div><div class="rc-main">${cMeet}</div></div>
+ ${bsec("Where the requests stand")}<div class="rc-grid rc-even"><div class="rc-main">${cPipe}</div><div class="rc-main">${cForum}</div></div>`};
+
+/* ---- Negotiation Bot ---- */
+rpNbHTML=function(){const e=S.entity;const P=rpPer();const per=RP.per==="MONTHLY"?"30 days":"7 days";const k=nbKpi(e,P.days),k2=nbKpi(e,P.days*2);const L=typeof nbList==="function"?nbList(e):[];const canNb=access(S.role,S.entity).mods.some(m=>m[0]==="nb");const snaps=(DB.nbkpi||[]).filter(z=>z.entity===e).slice(-5).reverse();
+ const st=RP.drill&&RP.drill.startsWith("nb:")?RP.drill.slice(3):"";const dl=st?L.filter(r=>nbStageOf(r)===st):null;const pr=x=>k2[x]-k[x];
+ const cards=scGrid([
+  scCard({icon:"nb",label:"In progress",v:RCN(k.open),cap:"open now",info:`<h5>In progress</h5><p>Negotiation Bot requests that are not yet handed over, failed or excluded. Snapshot as of today.</p>`}),
+  scCard({icon:"check",label:"Handed over",v:RCN(k.completed),drill:"nb:COMPLETED",delta:scD(k.completed,pr("completed"),"up"),cap:`to the Buyer, last ${per}`,info:`<h5>Handed over</h5><p>Negotiations completed and handed to the Buyer in the last ${per}.</p>`}),
+  scCard({icon:"alert",label:"Failed",v:RCN(k.failed),tone:k.failed?"bad":"",drill:"nb:FAILED",delta:scD(k.failed,pr("failed"),"down"),cap:`no agreement, last ${per}`,info:`<h5>Failed</h5><p>Requests where the bot could not reach an agreement.</p>`}),
+  scCard({icon:"chat",label:"Avg. rounds",v:k.rounds?String(k.rounds):"—",cap:"per agreed position",info:`<h5>Average rounds</h5><p>Negotiation rounds per agreed position, handed-over requests only.</p>`}),
+  scCard({icon:"flag",label:"Escalations",v:RCN(k.escal),tone:k.escal?"warn":"",cap:"guardrail alerts to the Buyer",info:`<h5>Escalations</h5><p>Times the bot handed a negotiation to the Buyer because a guardrail stopped it.</p>`}),
+  scCard({icon:"trend",label:"Savings",v:k.saving?inrShort(k.saving):"₹ 0",meter:k.pct,cap:k.saving?`${k.pct}% below the initial offers`:"no handed-over negotiation",info:`<h5>Savings</h5><p>Lowest initial total minus lowest negotiated total, handed-over requests only (A-76, G-19).</p>`})]);
+ const bad=["FAILED","RPA_ERROR","ESCALATED"];const cnt=s=>L.filter(r=>nbStageOf(r)===s).length;
+ const rows=NB_FUN.map(([s,l])=>({l,segs:[{n:cnt(s),c:bad.includes(s)?"--red":s==="COMPLETED"?"--s1":s==="EXCLUDED"?"--sOther":"--s3",name:l}],attrs:`data-rp="drill" data-v="nb:${s}"`}));
+ const cPipe=rcCard({id:"nbPipe",title:"Pipeline by stage",sub:`Every Negotiation Bot request in ${esc(e)}, in process order. Red stages need attention.`,info:`<h5>Pipeline</h5><p>One bar per bot stage. Select a stage to list its requests.</p>`,body:rcHBars(rows,Math.max(1,...NB_FUN.map(([s])=>cnt(s)))),tbl:rcTable(["Stage","Requests"],NB_FUN.map(([s,l])=>[`<button class="linkbtn" data-rp="drill" data-v="nb:${s}">${esc(l)}</button>`,RCN(cnt(s))]),true)});
+ const cOut=rcCard({id:"nbOut",title:"Outcomes",sub:"All requests by where they ended up.",body:rcDonut([{n:cnt("COMPLETED"),c:"--s1",name:"Handed over",attrs:'data-rp="drill" data-v="nb:COMPLETED"'},{n:L.filter(isOpen).length,c:"--s3",name:"In progress"},{n:cnt("FAILED"),c:"--red",name:"Failed",attrs:'data-rp="drill" data-v="nb:FAILED"'},{n:cnt("EXCLUDED"),c:"--sOther",name:"Excluded",attrs:'data-rp="drill" data-v="nb:EXCLUDED"'}],{center:"requests",size:148})});
+ const done=L.filter(r=>nbStageOf(r)==="COMPLETED").map(r=>{const f=nbX(r)?.final||{};return{r,ini:+f.lowI||0,neg:+f.lowN||0}}).filter(x=>x.ini>0&&x.neg>0&&x.ini>=x.neg).map(x=>({...x,save:x.ini-x.neg})).sort((a,b)=>b.save-a.save).slice(0,8);
+ const cSave=rcCard({id:"nbSave",title:"Savings by request",sub:"Lowest initial total against the lowest negotiated total, largest savings first.",info:`<h5>Savings</h5><p>The green part is the agreed total, the blue part is what was saved. Select a bar to open the request.</p>`,
+  body:done.length?rcLegend([{c:"--s1",n:"Agreed total"},{c:"--s3",n:"Saved"}])+rcHBars(done.map(x=>({l:x.r.topic||x.r.no,full:`${x.r.no}, ${x.r.topic||""}`,segs:[{n:x.neg,c:"--s1",name:"Agreed total"},{n:x.save,c:"--s3",name:"Saved"}],vt:`${inrShort(x.save)} · ${Math.round(x.save/x.ini*100)}%`,attrs:`data-rp="nbopen" data-v="${x.r._id}"`})),Math.max(...done.map(x=>x.ini))):rcEmpty("No savings yet","Savings appear once the bot hands a negotiation over to the Buyer.")});
+ const cSent=rcCard({id:"nbSent",title:"KPI reports sent",sub:"Scheduled every Monday (weekly) and on the 1st (monthly), Reminder Rule R-22. Recipients: Buyer, Buyer Supervisor and Department Head (NB-S10).",cls:"wide",
+  body:`${snaps.length?rcTable(["Sent","Period","Processed","Closed","Failed","Savings","By"],snaps.map(z=>[esc(z.at),z.period==="MONTHLY"?"Monthly":"Weekly",RCN(z.processed),RCN(z.completed),RCN(z.failed),esc(inr(z.saving)),esc(z.by)]),true):rcEmpty("No report sent yet","The first scheduled report goes out on the next Monday or the 1st.")}
+  <div class="actrow" style="margin-top:12px">${typeof nbCan==="function"&&nbCan()?`<button class="btn" data-rp="nbsend" data-v="WEEKLY">${ico("send")}Send weekly report</button><button class="btn" data-rp="nbsend" data-v="MONTHLY">${ico("send")}Send monthly report</button><span class="proto">Prototype only</span>`:""}${canNb?`<button class="btn" data-rp="nbgo">${ico("nb")}Open the Negotiation Bot</button>`:""}</div>`});
+ return`${bsec("At a glance",`as of ${fmtD(today())}`)}${cards}
+ ${dl?`<section class="panel nb-p" id="rpDrill"><div class="nb-ph"><h3>${esc(NB_FUN.find(x=>x[0]===st)?.[1]||st)} <span class="chip">${dl.length}</span></h3><button class="iconbtn" data-rp="drill" data-v="" aria-label="Close the list">${ico("x")}</button></div><div class="tablewrap"><table><thead><tr><th>Tracking no.</th><th>Description</th><th class="num">Value</th><th>Stage</th><th>Next</th></tr></thead><tbody>${dl.map(r=>`<tr><td><button class="linkbtn" data-rp="nbopen" data-v="${r._id}">${esc(r.no)}</button></td><td class="wrap small">${esc(r.topic)}</td><td class="num small">${esc(inr(r.amount))}</td><td>${stChip(nbStageOf(r))}</td><td class="wrap small">${esc(nbNext(r))}</td></tr>`).join("")||'<tr><td colspan="5" class="sub">No request.</td></tr>'}</tbody></table></div></section>`:""}
+ ${bsec("Pipeline and outcomes")}<div class="rc-grid"><div class="rc-main">${cPipe}</div><div class="rc-main">${cOut}</div></div>
+ ${bsec("Savings")}${cSave}${cSent}`};
+
+/* ---- Contracts and carts ---- */
+rpCtrHTML=function(){const L=crScope();const e=S.entity;const bk=[...INC10.bk.map(b=>b[0]),"EXP"];const C=qCarts();const val=x=>x.c.currency==="INR"?+x.c.value_in_currency||0:(+x.c.value_eur||0);
+ const mon=L.filter(c=>crState(c)!=="RENEWED");const exp0=L.filter(c=>crBucket(c)==="B0"&&crState(c)!=="RENEWED").length,expd=L.filter(c=>crBucket(c)==="EXP"&&crState(c)!=="RENEWED").length,ren=L.filter(c=>crState(c)==="RENEWED").length;
+ const bb=RP.drill&&RP.drill.startsWith("cb:")?RP.drill.slice(3):null;const cl=bb!=null?C.filter(x=>(x.c.buyer_user_id||"—")===bb):null;
+ const oldest=C.length?Math.max(...C.map(x=>x.age)):0,avg=C.length?Math.round(C.reduce((a,x)=>a+x.age,0)/C.length):0;const vIn=c=>+c.value_inr||0;
+ const cardsC=scGrid([
+  scCard({icon:"contract",label:"Active contracts",v:RCN(mon.length),cap:`${inrShort(mon.reduce((a,c)=>a+vIn(c),0))} in value, not yet renewed`,info:`<h5>Active contracts</h5><p>Monitored frame and scrap contracts in ${esc(e)} you can see, not yet renewed (US-174 AC1).</p>`}),
+  scCard({icon:"clock",label:"Expiring in 0-6 months",v:RCN(exp0),tone:exp0?"warn":"",cap:"inside the renewal window",info:`<h5>Expiring in 0-6 months</h5><p>Contracts ending within six months. Renewal reminders run in this window.</p>`}),
+  scCard({icon:"alert",label:"Expired",v:RCN(expd),tone:expd?"bad":"",cap:"past the end date, no renewal",info:`<h5>Expired</h5><p>Contracts past their end date without a renewal request.</p>`}),
+  scCard({icon:"check",label:"Renewal requested",v:RCN(ren),cap:"in progress or done",info:`<h5>Renewal requested</h5><p>Contracts for which a renewal request was submitted.</p>`})]);
+ const cardsK=scGrid([
+  scCard({icon:"upload",label:"Open carts",v:RCN(C.length),cap:"from the latest upload",info:`<h5>Open carts</h5><p>Carts from the latest open-cart upload (GP step 32) that are not yet closed in AIS.</p>`}),
+  scCard({icon:"coin",label:"Cart value",v:inrShort(C.reduce((a,x)=>a+val(x),0)),cap:"all open carts",info:`<h5>Cart value</h5><p>Sum of the open cart values, in INR where the cart is in INR, otherwise in EUR as uploaded.</p>`}),
+  scCard({icon:"timer",label:"Oldest cart",v:C.length?RCN(oldest)+" d":"—",tone:oldest>30?"bad":oldest>7?"warn":"",cap:C.length?"calendar days since created":"no open cart",info:`<h5>Age</h5><p>Calendar days since the cart was created (US-174 AC2).</p>`}),
+  scCard({icon:"clock",label:"Average age",v:C.length?RCN(avg)+" d":"—",cap:"across open carts"})]);
+ const wCol={B0:"--s5",B6:"--s6",B8:"--s3",B12:"--s1",EXP:"--red"};const mxW=Math.max(1,...bk.map(k=>L.filter(c=>crBucket(c)===k&&crState(c)!=="RENEWED").reduce((a,c)=>a+vIn(c),0)));
+ const cWin=rcCard({id:"ctWin",title:"Contract value by expiry window",sub:"Value of the active contracts by months left; the number after the dot is the contract count. Select a bar to open the registry.",info:`<h5>Expiry window</h5><p>Months left until the end date. Red = already expired, gold = inside the 0-6 month renewal window.</p>`,
+  body:rcHBars(bk.map(k=>{const g=L.filter(c=>crBucket(c)===k&&crState(c)!=="RENEWED");const t=g.reduce((a,c)=>a+vIn(c),0);return{l:crBkLab(k),segs:[{n:t,c:wCol[k]||"--sOther",name:"Value"}],vt:`${inrShort(t)} · ${g.length}`,note:plural(g.length,"contract"),attrs:`data-rp="ctrwin" data-v="${k}"`}}),mxW),
+  tbl:rcTable(["Window","Contracts","Value INR","Renewal requested"],bk.map(k=>{const g=L.filter(c=>crBucket(c)===k);return[`<button class="linkbtn" data-rp="ctrwin" data-v="${k}">${esc(crBkLab(k))}</button>`,RCN(g.filter(c=>crState(c)!=="RENEWED").length),esc(inr(g.reduce((s,c)=>s+vIn(c),0))),RCN(g.filter(c=>crState(c)==="RENEWED").length)]}),true),
+  act:`<button class="btn" data-rp="ctrwin" data-v="">${ico("contract")}Registry</button>`});
+ const ty=rpGroup(mon,c=>c.contract_type);const mxT=Math.max(1,...ty.map(([,v])=>v.reduce((a,c)=>a+vIn(c),0)));
+ const cType=rcCard({id:"ctType",title:"Contract value by type",sub:"Purchase orders, frame and scrap contracts that are active.",body:rcHBars(ty.map(([k,v],i)=>{const t=v.reduce((a,c)=>a+vIn(c),0);return{l:INC10.ctype[k]||k,segs:[{n:t,c:["--s1","--s2","--s3","--s4"][i%4],name:"Value"}],vt:`${inrShort(t)} · ${v.length}`,note:plural(v.length,"contract")}}),mxT)});
+ const byB=rpGroup(C,x=>x.c.buyer_user_id||"—");const band=a=>a<=7?0:a<=30?1:2;
+ const brows=byB.map(([b,v])=>({l:b==="—"?"Not mapped":uName(b)||b,segs:[0,1,2].map(i=>({n:v.filter(x=>band(x.age)===i).length,c:["--s1","--s5","--s2"][i],name:["Up to 7 days","8 to 30 days","Over 30 days"][i]})),note:`Oldest ${Math.max(...v.map(x=>x.age))} days, average ${Math.round(v.reduce((s,x)=>s+x.age,0)/v.length)} days, value ${inr(v.reduce((s,x)=>s+val(x),0))}`,attrs:`data-rp="drill" data-v="cb:${esc(b)}"`}));
+ const cCart=rcCard({id:"ctCart",title:"Open shopping carts by Buyer",sub:"Count of open carts, split by age. Select a Buyer to list the carts.",info:`<h5>Cart age</h5><p>Calendar days since the cart was created in K-SRM (US-174 AC2).</p>`,
+  body:rcLegend([{c:"--s1",n:"Up to 7 days"},{c:"--s5",n:"8 to 30 days"},{c:"--s2",n:"Over 30 days"}])+rcHBars(brows),
+  tbl:rcTable(["Buyer","Carts","Oldest (days)","Average age","Value"],byB.map(([b,v])=>[`<button class="linkbtn" data-rp="drill" data-v="cb:${esc(b)}">${esc(b==="—"?"Not mapped":uName(b)||b)}</button>`,RCN(v.length),RCN(Math.max(...v.map(x=>x.age))),RCN(Math.round(v.reduce((s,x)=>s+x.age,0)/v.length)),esc(inr(v.reduce((s,x)=>s+val(x),0)))]),true)});
+ const ag=[0,1,2].map(i=>C.filter(x=>band(x.age)===i).length);
+ const cAge=rcCard({id:"ctAge",title:"Cart ageing",sub:"All open carts by age.",body:rcHBars(["Up to 7 days","8 to 30 days","Over 30 days"].map((l,i)=>({l,segs:[{n:ag[i],c:["--s1","--s5","--s2"][i],name:l}]})),Math.max(1,...ag))});
+ return`${bsec("Contracts",`as of ${fmtD(today())}`)}${cardsC}
+ <div class="rc-grid rc-even">${cWin}${cType}</div>
+ ${bsec("Shopping carts")}${cardsK}${cl?rpCartTable(`Open carts, ${bb==="—"?"Buyer not mapped":uName(bb)}`,cl):""}
+ <div class="rc-grid"><div class="rc-main">${cCart}</div><div class="rc-main">${cAge}</div></div>`};
+
+document.head.insertAdjacentHTML("beforeend",`<style id="rep3css">
+.bi-sec{margin:22px 0 10px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;align-items:baseline;gap:10px}.bi-sec:first-of-type{margin-top:6px}
+.bi-sec small{font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted)}
+.sc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:0 0 6px}
+.sc-grid[style*="--cn:6"]{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (min-width:1700px){.sc-grid[style*="--cn:6"]{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media (max-width:760px){.sc-grid[style*="--cn:6"]{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sc{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;min-width:0;display:flex}
+.sc-b{width:100%;text-align:left;background:none;border:0;padding:16px 18px 14px;color:inherit;display:flex;flex-direction:column;gap:6px;min-width:0;border-radius:16px}
+button.sc-b{cursor:pointer}.sc:has(button.sc-b:hover){border-color:var(--brand)}.sc:has(button.sc-b[aria-pressed="true"]){border-color:var(--brand);box-shadow:0 0 0 1px var(--brand)}
+.sc-l{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:650;color:var(--muted)}.sc-l svg.i{width:16px;height:16px;flex:none}
+.sc.bad .sc-l svg.i{color:var(--red)}.sc.warn .sc-l svg.i{color:var(--amber)}
+.sc-v{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 10px}.sc-v b{font-size:32px;line-height:1.1;font-weight:750;letter-spacing:-.025em;color:var(--ink);font-variant-numeric:tabular-nums}.sc.bad .sc-v b{color:var(--red)}
+.sc-d{font-size:12.5px;font-weight:700;white-space:nowrap}.sc-d.ok{color:var(--ok)}.sc-d.bad{color:var(--red)}.sc-d.flat{color:var(--muted);font-weight:600}
+.sc-c{font-size:12.5px;color:var(--muted);line-height:1.35}
+.sc-m{display:block;height:5px;border-radius:3px;background:var(--line2);overflow:hidden;margin-top:2px}.sc-m i{display:block;height:100%;border-radius:3px;background:var(--brand)}.sc.bad .sc-m i{background:var(--red)}
+.sc-sp{display:block;width:100%;height:34px;margin-top:auto;padding-top:6px}.sc-sp .a{fill:color-mix(in srgb,var(--tc) 14%,transparent)}.sc-sp .l{fill:none;stroke:var(--tc);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.sc .info{position:absolute;top:12px;right:12px}.sc .infobtn{width:20px;height:20px;font-size:11px}
+</style>`);
+/* ======================================================================
+   Reports v4: Contracts (renewal exposure) and Approval bottlenecks.
+   The Negotiation Bot and Queries tabs are left out of the tab bar because the Negotiation
+   Desk already covers the first; rpNbHTML and rpQHTML stay in this file for later use.
+   ====================================================================== */
+const rpCtrCartsLegacy=rpCtrHTML;
+const rpDays=d=>dnum(d)-dnum(today());
+const rpTagOf=(tone,t)=>`<span class="rp-tag ${tone}">${esc(t)}</span>`;
+
+/* ---- Contracts ---- */
+rpCtrHTML=function(){const e=S.entity;const L=crScope().filter(c=>c.end_date);const vIn=c=>+c.value_inr||0;const sum=a=>a.reduce((s,c)=>s+vIn(c),0);
+ const ren=c=>crState(c)==="RENEWED";const dy=c=>rpDays(c.end_date);
+ const exp=L.filter(c=>dy(c)<0&&!ren(c)),soon=L.filter(c=>dy(c)>=0&&dy(c)<=90&&!ren(c)),renewed=L.filter(ren);
+ const cards=scGrid([
+  scCard({icon:"coin",label:"Listed contract value",v:inrShort(sum(L)),cap:`${plural(L.length,"contract")} with an end date`,info:`<h5>Listed contract value</h5><p>Value of the frame and scrap contracts you can see in ${esc(e)}, as recorded at approval. It is contract value, not actual spend. Purchase orders have no end date and are not counted.</p>`}),
+  scCard({icon:"contract",label:"Monitored contracts",v:RCN(L.length),cap:"in the selected entity",info:`<h5>Monitored contracts</h5><p>Contracts with an end date, which AIS watches for renewal (US-174).</p>`}),
+  scCard({icon:"clock",label:"Expiring within 90 days",v:RCN(soon.length),tone:soon.length?"warn":"",cap:`${inrShort(sum(soon))} exposed`,info:`<h5>Expiring within 90 days</h5><p>Contracts ending in the next 90 days with no renewal requested yet.</p>`}),
+  scCard({icon:"alert",label:"Expired contracts",v:RCN(exp.length),tone:exp.length?"bad":"",cap:`${inrShort(sum(exp))} listed value`,info:`<h5>Expired contracts</h5><p>Contracts past their end date without a renewal request.</p>`})]);
+ const bk=[["Expired",c=>dy(c)<0,"--red"],["0 to 90 days",c=>dy(c)>=0&&dy(c)<=90,"--s5"],["91 to 180 days",c=>dy(c)>90&&dy(c)<=180,"--s3"],["181 to 365 days",c=>dy(c)>180&&dy(c)<=365,"--s6"],["Beyond one year",c=>dy(c)>365,"--s1"]];
+ const g1=bk.map(([l,f,c])=>[l,L.filter(f),c]);const mx1=Math.max(1,...g1.map(x=>sum(x[1])));
+ const cExp=rcCard({id:"ctExp",title:"Renewal exposure",sub:"Contract value by time left until the end date.",info:`<h5>Renewal exposure</h5><p>Red is already expired, gold is inside the 90-day renewal window. The number after the dot is the contract count.</p>`,
+  body:rcHBars(g1.map(([l,a,c])=>({l,segs:[{n:sum(a),c,name:"Value"}],vt:`${inrShort(sum(a))} · ${a.length}`,note:plural(a.length,"contract")})),mx1),
+  tbl:rcTable(["Time left","Contracts","Value INR"],g1.map(([l,a])=>[esc(l),RCN(a.length),esc(inr(sum(a)))]),true),act:`<button class="btn" data-rp="ctrwin" data-v="">${ico("contract")}Registry</button>`});
+ const g2=[["Expired",L.filter(c=>dy(c)<0&&!ren(c)),"--red"],["Renewal requested",renewed,"--s1"],["Due within 90 days",L.filter(c=>dy(c)>=0&&dy(c)<=90&&!ren(c)),"--s5"],["Due in 91 to 180 days",L.filter(c=>dy(c)>90&&dy(c)<=180&&!ren(c)),"--s3"],["Later, monitored",L.filter(c=>dy(c)>180&&!ren(c)),"--sOther"]];
+ const mx2=Math.max(1,...g2.map(x=>x[1].length));
+ const cPipe=rcCard({id:"ctPipe",title:"Renewal pipeline",sub:"Contracts by renewal status and timing.",info:`<h5>Renewal pipeline</h5><p>Where each contract stands on renewal. Renewal requested means the Initiator has already started the renewal request.</p>`,
+  body:rcHBars(g2.map(([l,a,c])=>({l,segs:[{n:a.length,c,name:"Contracts"}],vt:`${a.length} · ${inrShort(sum(a))}`,note:inr(sum(a))})),mx2),
+  tbl:rcTable(["Status","Contracts","Value INR"],g2.map(([l,a])=>[esc(l),RCN(a.length),esc(inr(sum(a)))]),true)});
+ const sups=rpGroup(L,c=>c.supplier_name||"—").sort((a,b)=>sum(b[1])-sum(a[1]));const tot=Math.max(1,sum(L));
+ const cSup=rcCard({id:"ctSup",title:"Supplier concentration",sub:"Share of listed contract value by supplier. This is contract value, not actual spend.",info:`<h5>Supplier concentration</h5><p>A supplier holding a large share of the value is a renewal and dependency risk.</p>`,
+  body:rcHBars(sups.slice(0,8).map(([k,a],i)=>({l:k==="—"?"Not recorded":k,segs:[{n:sum(a),c:i===0?"--s5":"--s1",name:"Value"}],vt:`${Math.round(sum(a)/tot*100)}% · ${inrShort(sum(a))}`,note:plural(a.length,"contract")})),Math.max(1,...sups.map(([,a])=>sum(a)))),
+  tbl:rcTable(["Supplier","Contracts","Value INR","Share"],sups.map(([k,a])=>[esc(k),RCN(a.length),esc(inr(sum(a))),Math.round(sum(a)/tot*100)+"%"]),true)});
+ const pr=L.filter(c=>dy(c)<=180).sort((a,b)=>dy(a)-dy(b));
+ const tagFor=c=>{const d=dy(c);return ren(c)?["","Renewal requested"]:d<0?["bad","Expired"]:d<=90?["warn","Renewal attention"]:["","Monitor"]};
+ const cPri=rcCard({id:"ctPri",title:"Renewal priority",sub:"Contracts that need action, most urgent first.",
+  body:pr.length?`<ul class="ct-pri">${pr.slice(0,8).map(c=>{const t=tagFor(c),d=dy(c);return`<li><button type="button" class="linkbtn" data-ctr="${esc(c.contract_id)}">${esc(crReq(c)?.topic||c.contract_id)}</button>${rpTagOf(t[0],t[1])}<b>${d<0?Math.abs(d)+" days overdue":d+" days left"}</b></li>`}).join("")}</ul>${pr.length>8?`<p class="fine rc-more">${plural(pr.length-8,"more contract")} in the table below.</p>`:""}`:rcEmpty("Nothing needs action","No contract ends in the next 180 days.")});
+ const att=rcCard({id:"ctAtt",title:"Contracts requiring attention",sub:"Expired contracts and renewals due in the next 180 days, ordered by end date.",cls:"wide",
+  body:`<div class="tablewrap"><table class="rc-tb"><thead><tr><th>Contract</th><th>Supplier</th><th>Request</th><th class="num">Listed value</th><th>End date</th><th>Renewal status</th></tr></thead><tbody>${pr.map(c=>{const t=tagFor(c),r=crReq(c);return`<tr><td><button class="linkbtn" data-ctr="${esc(c.contract_id)}">${esc(c.contract_id)}</button><span class="cr-s">${esc(INC10.ctype[c.contract_type]||c.contract_type)} ${esc(c.contract_number)}</span></td><td>${esc(c.supplier_name||"—")}</td><td>${r?`<button class="linkbtn" data-case="${r._id}">${esc(r.no)}</button><span class="cr-s">${esc(r.topic)}</span>`:"—"}</td><td class="num">${esc(inr(vIn(c)))}</td><td class="nw">${esc(fmtD(c.end_date))}</td><td>${rpTagOf(t[0],t[1])}</td></tr>`}).join("")||'<tr><td colspan="6" class="sub">No contract requires attention in this period.</td></tr>'}</tbody></table></div>`});
+ return`${bsec("Renewal health",`${esc(e)} · as of ${fmtD(today())}`)}${cards}
+ ${bsec("Exposure and pipeline")}<div class="rc-grid rc-even">${cExp}${cPipe}</div>
+ ${bsec("Suppliers and priorities")}<div class="rc-grid rc-even">${cSup}${cPri}</div>${att}`};
+
+/* ---- Approval bottlenecks ---- */
+const APPR_STEPS=[10,11,14,15,20,22,23,25,27,29,34,35];
+function rpApprItems(){const e=S.entity;const it=[];
+ rpGpCases().forEach(r=>{const H=(r.hist||[]).slice().sort((a,b)=>((a.d||"")+(a.t||"")).localeCompare((b.d||"")+(b.t||"")));
+  H.forEach((h,i)=>{if(!APPR_STEPS.includes(+h.step))return;if(!/^(approved|committee approved|exception approved)|approved [(]/i.test(h.action||""))return;
+   const start=(i?H[i-1].d:r.created)||h.d;it.push({r,step:+h.step,role:h.role||RESP[h.step]||"",start,end:h.d,days:wdBetween(e,start,h.d),status:"Approved"})});
+  if(isOpen(r)&&APPR_STEPS.includes(+r.step)){const tm=timing(r),w=whoAt(r);it.push({r,step:+r.step,role:(w.task&&w.task[0])||RESP[r.step]||"",start:r.entered||r.created,end:"",days:tm.age,status:tm.over?"Overdue":"Pending"})}});
+ return it}
+var rpApprHTML=function(){const P=rpPer();const per=RP.per==="MONTHLY"?"30 days":"7 days";const B=rcBuckets(P),N=B.length;const win=B[0].from;
+ const all=rpApprItems();const done=all.filter(x=>x.status==="Approved"&&x.end>win),pend=all.filter(x=>x.status!=="Approved"),over=pend.filter(x=>x.status==="Overdue");const recs=done.length+pend.length;
+ const avgOf=a=>a.length?Math.round(a.reduce((s,x)=>s+x.days,0)/a.length*10)/10:0;
+ const ser=B.map(b=>({rec:all.filter(x=>x.start>b.from&&x.start<=b.to).length,app:all.filter(x=>x.status==="Approved"&&x.end>b.from&&x.end<=b.to).length,back:all.filter(x=>x.start<=b.to&&(!x.end||x.end>b.to)).length}));
+ const oldest=pend.slice().sort((a,b)=>b.days-a.days)[0];const rn=r=>roleName(r)||"Not assigned";
+ const cards=scGrid([
+  scCard({icon:"stack",label:"Approval records",v:RCN(recs),cap:`${RCN(done.length)} decided in the last ${N} ${rpPeriodWord()}, ${RCN(pend.length)} waiting`,info:`<h5>Approval records</h5><p>Every approval task on a GP request: the decisions recorded in the request history over the period shown, plus the approvals waiting today. Approval steps: Cost Center Head, Section Head BA, Head BA and Dept Head steps, including the PO and FC approval.</p>`}),
+  scCard({icon:"clock",label:"Awaiting decision",v:RCN(pend.length),tone:pend.length?"warn":"",spark:ser.map(s=>s.back),color:"--s5",cap:"pending and overdue",info:`<h5>Awaiting decision</h5><p>Requests sitting at an approval step right now. The line is the backlog at the end of each ${per==="30 days"?"month":"week"}.</p>`}),
+  scCard({icon:"alert",label:"Overdue approvals",v:RCN(over.length),tone:over.length?"bad":"",meter:pend.length?over.length/pend.length*100:0,cap:`${pend.length?Math.round(over.length/pend.length*100):0}% of those waiting`,info:`<h5>Overdue approvals</h5><p>Approvals waiting longer than the standard turnaround of their step, on the working calendar.</p>`}),
+  scCard({icon:"flag",label:"Oldest outstanding",v:oldest?RCN(oldest.days)+" d":"—",tone:oldest&&oldest.days>10?"bad":"",cap:oldest?`${esc(oldest.r.no)} · ${esc(rn(oldest.role))}`:"nothing waiting",info:`<h5>Oldest outstanding</h5><p>The approval that has waited longest at its current step, in working days.</p>`}),
+  scCard({icon:"timer",label:"Average days to approve",v:done.length?String(avgOf(done)):"—",cap:done.length?`working days, ${plural(done.length,"decision")}`:"no decision in the period",info:`<h5>Average days to approve</h5><p>Working days between the request reaching an approval step and the approver's decision.</p>`})]);
+ const roles=[...new Set(all.map(x=>x.role))];
+ const stRows=roles.map(r=>({r,p:pend.filter(x=>x.role===r&&x.status==="Pending").length,o:pend.filter(x=>x.role===r&&x.status==="Overdue").length})).filter(x=>x.p+x.o>0).sort((a,b)=>(b.p+b.o)-(a.p+a.o));
+ const cStage=rcCard({id:"apStage",title:"Pending approvals by approver",sub:"Who the outstanding approvals are waiting on.",info:`<h5>Pending by approver</h5><p>Approvals waiting today, grouped by the approver role. The red part is overdue.</p>`,
+  body:stRows.length?rcLegend([{c:"--s5",n:"Pending"},{c:"--red",n:"Overdue"}])+rcHBars(stRows.map(x=>({l:rn(x.r),segs:[{n:x.p,c:"--s5",name:"Pending"},{n:x.o,c:"--red",name:"Overdue"}]}))):rcEmpty("Nothing waiting","No approval is waiting right now."),
+  tbl:rcTable(["Approver","Pending","Overdue"],stRows.map(x=>[esc(rn(x.r)),RCN(x.p),RCN(x.o)]),true)});
+ const ag=[["0 to 2 days",x=>x.days<=2,"--s1"],["3 to 5 days",x=>x.days>=3&&x.days<=5,"--s6"],["6 to 10 days",x=>x.days>=6&&x.days<=10,"--s5"],["11 days or more",x=>x.days>=11,"--red"]];
+ const cAge=rcCard({id:"apAge",title:"Approval ageing",sub:"Outstanding approvals by working days at their current step.",body:rcHBars(ag.map(([l,f,c])=>({l,segs:[{n:pend.filter(f).length,c,name:l}]})),Math.max(1,pend.length))});
+ const st=[["Approved",done.length,"--s1"],["Pending",pend.length-over.length,"--s5"],["Overdue",over.length,"--red"]];
+ const cMix=rcCard({id:"apMix",title:"Approval status mix",sub:"Decided against waiting approvals.",body:rcDonut(st.map(([n,v,c])=>({n:v,c,name:n})),{center:"approvals",size:148})});
+ const avgRows=roles.map(r=>({r,a:avgOf(done.filter(x=>x.role===r)),n:done.filter(x=>x.role===r).length})).filter(x=>x.n>0).sort((a,b)=>b.a-a.a);
+ const cAvg=rcCard({id:"apAvg",title:"Average days by approver",sub:"Working days from reaching the step to the decision. Gold means a week or more.",body:avgRows.length?rcHBars(avgRows.map(x=>({l:rn(x.r),segs:[{n:x.a,c:x.a>=7?"--s5":"--s1",name:"Average days"}],vt:`${x.a} days`,note:plural(x.n,"decision")})),Math.max(1,...avgRows.map(x=>x.a))):rcEmpty("No decision yet","Averages appear once approvers have decided."),
+  tbl:rcTable(["Approver","Decisions","Average days"],avgRows.map(x=>[esc(rn(x.r)),RCN(x.n),String(x.a)]),true)});
+ const cWork=rcCard({id:"apWork",title:"Approval workload",sub:`Approvals reaching an approver and decisions recorded, per ${per==="30 days"?"month":"week"}.`,body:rcLegend([{c:"--s3",n:"Received"},{c:"--s1",n:"Approved"}])+rcCols(B.map((b,i)=>({l:b.l,full:b.full,v:[ser[i].rec,ser[i].app]})),[{n:"Received",c:"--s3"},{n:"Approved",c:"--s1"}],220),
+  tbl:rcTable(["Period ending","Received","Approved","Backlog at end"],B.map((b,i)=>[esc(b.full),RCN(ser[i].rec),RCN(ser[i].app),RCN(ser[i].back)]),true)});
+ const cBack=rcCard({id:"apBack",title:"Backlog over time",sub:"Approvals still waiting at the end of each period.",info:`<h5>Backlog</h5><p>A rising line means approvals arrive faster than they are decided.</p>`,body:rcLine(B.map((b,i)=>({l:b.l,full:b.full,y:ser[i].back,rows:[["--s5","Waiting at period end",ser[i].back],[null,"Received",ser[i].rec],[null,"Approved",ser[i].app]]})),"--s5",220)});
+ const flows=[...new Set(all.map(x=>x.r.flow))];
+ const cFlow=rcCard({id:"apFlow",cls:"wide",title:"Approvals by flow",sub:"Decided and waiting approvals for each request flow.",body:rcLegend([{c:"--s1",n:"Approved"},{c:"--s5",n:"Pending"},{c:"--red",n:"Overdue"}])+rcHBars(flows.map(f=>({l:FLOW_LBL[f]||f,segs:[{n:done.filter(x=>x.r.flow===f).length,c:"--s1",name:"Approved"},{n:pend.filter(x=>x.r.flow===f&&x.status==="Pending").length,c:"--s5",name:"Pending"},{n:pend.filter(x=>x.r.flow===f&&x.status==="Overdue").length,c:"--red",name:"Overdue"}]})))});
+ const att=rcCard({id:"apAtt",title:"Approval attention list",sub:"Pending and overdue approvals, longest waiting first.",cls:"wide",
+  body:`<div class="tablewrap"><table class="rc-tb"><thead><tr><th>Request</th><th>Topic</th><th>Approval step</th><th>Approver</th><th class="num">Days at step</th><th>Status</th></tr></thead><tbody>${pend.slice().sort((a,b)=>b.days-a.days).map(x=>`<tr><td><button class="linkbtn" data-case="${x.r._id}">${esc(x.r.no)}</button></td><td class="wrap">${esc(x.r.topic)}</td><td class="wrap">${x.step} ${esc(((typeof P5_TITLE!=="undefined"&&P5_TITLE[x.step])||stepRow("GP",x.step)?.name||""))}</td><td>${esc(rn(x.role))}</td><td class="num">${x.days}</td><td>${rpTagOf(x.status==="Overdue"?"bad":"warn",x.status)}</td></tr>`).join("")||'<tr><td colspan="6" class="sub">No outstanding approval.</td></tr>'}</tbody></table></div>`});
+ return`${bsec("Approvals at a glance",`${esc(S.entity)} · as of ${fmtD(today())}`)}${cards}
+ ${bsec("Where approvals wait")}<div class="rc-grid"><div class="rc-main">${cStage}</div><div class="rc-main">${cAge}</div></div>
+ ${bsec("Speed and mix")}<div class="rc-grid rc-even">${cAvg}${cMix}</div>
+ ${bsec("Workload over time",`last ${N} ${rpPeriodWord()}`)}<div class="rc-grid rc-even">${cWork}${cBack}</div>
+ ${cFlow}${att}`};
+document.head.insertAdjacentHTML("beforeend",`<style id="rep4css">
+.ct-pri{list-style:none;margin:0;padding:0;display:grid}.ct-pri li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line2)}.ct-pri li:first-child{border-top:0}
+.ct-pri .linkbtn{text-align:left;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ct-pri b{font-size:12.5px;color:var(--muted);white-space:nowrap;font-weight:600}
+.rp-tag{display:inline-block;border-radius:6px;padding:3px 9px;background:var(--ok-soft);color:var(--ok);font-size:11.5px;font-weight:650;white-space:nowrap}.rp-tag.bad{background:var(--red-soft);color:var(--red)}.rp-tag.warn{background:var(--amber-soft);color:var(--amber)}
+</style>`);
+
+
 
 /* Demo helper: the open-cart report always holds a few carts that are not linked to a request, so Step 30 can be shown without K-SRM */
 function ensureDemoCarts(){try{lbCols();const e="E1";const ini=DB.user.find(u=>u.sso===roleHolders("INITIATOR",e)[0]);if(!ini||!DB.cartbatch.length)return;const t=today();
@@ -9218,6 +9630,16 @@ if(DB.req&&!DB.purge1){const ids=new Set(DB.req.filter(r=>/^(a|b|abc)$/i.test(St
   if(DB.contract)DB.contract=DB.contract.filter(c=>!ids.has(c.request_id));
   if(DB.approvaltask)DB.approvaltask=DB.approvaltask.filter(t=>!cts.has(t.contract_id))}
  DB.purge1=1;save()}
+/* One-time clean-up 2: requests AIS-E1-2026-00102 to 00106 go, with their notifications, contracts, approval tasks, FSK cases and Negotiation Bot cases */
+if(DB.req&&!DB.purge2){const gone=new Set(["AIS-E1-2026-00102","AIS-E1-2026-00103","AIS-E1-2026-00104","AIS-E1-2026-00105","AIS-E1-2026-00106"]);
+ const ids=new Set(DB.req.filter(r=>gone.has(r.no)).map(r=>r._id));
+ if(ids.size){DB.req.filter(r=>ids.has(r.request_id)).forEach(r=>ids.add(r._id));
+  const cts=new Set((DB.contract||[]).filter(c=>ids.has(c.request_id)).map(c=>c.contract_id));
+  DB.req=DB.req.filter(r=>!ids.has(r._id));DB.notif=(DB.notif||[]).filter(n=>!ids.has(n.case));
+  if(DB.fskcase)DB.fskcase=DB.fskcase.filter(c=>!ids.has(c.request_id));
+  if(DB.contract)DB.contract=DB.contract.filter(c=>!ids.has(c.request_id));
+  if(DB.approvaltask)DB.approvaltask=DB.approvaltask.filter(t=>!cts.has(t.contract_id))}
+ DB.purge2=1;save()}
 ensureDemoCarts();
 if(S.user&&ensureSession())renderShell();else render0();bumpIdle();
 histBoot();
