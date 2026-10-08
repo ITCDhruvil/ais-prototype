@@ -7925,7 +7925,7 @@ function fxDocsBlock(r){const L=fxDocs(r);const b=document.createElement("div");
  :emptyHTML("No documents yet","The RFQ package, supplier offers, signed SFO and contract copy appear here as soon as they are uploaded.","list"));
  return b}
 /* Discussion: a forum thread per topic, seeded from the request, with replies and new topics kept on the request */
-const FX={sel:{},nf:{},files:{}};
+const FX={sel:{},nf:{},files:{},pc:{},rc:{}};
 function fxPeople(r){const e=r.entity;const P=(role,sso)=>{const s=sso||roleHolders(role,e)[0]||"";return{sso:s,name:uName(s)||roleName(role),role:roleName(role),key:role}};
  return{ini:P("INITIATOR",r.initiator),buy:P("BUYER",r.buyer),sh:P("SECTION_HEAD_BA"),cc:P("CC_HEAD"),hba:P("HEAD_BA")}}
 function fxThreads(r){const e=r.entity,p=fxPeople(r),T=[];const cr=String(r.created||today()).slice(0,10);
@@ -7969,8 +7969,10 @@ function fxInner(r){const T=fxThreads(r);const sel=T.find(t=>t.id===FX.sel[r._id
  const people=[...seen.values()];
  const files=[];T.forEach(t=>t.posts.forEach(p=>(p.att||[]).forEach(a=>files.push({a,t:t.title,w:p.w.name}))));
  let day="";const msgs=sel.posts.map(q=>{const d=fxDay(q.at);const sep=d!==day?`<div class="fxd-day"><span>${esc(d)}</span></div>`:"";day=d;return sep+fxPostHTML(q,!!S.user&&q.w.sso===S.user)}).join("");
- return`<div class="fxd">
- <aside class="fxd-rail" aria-label="Topics"><div class="fxd-rh"><div><h3>Discussion</h3><span class="fxd-sub">${T.length} topics on ${esc(r.no)}</span></div><button type="button" class="fxd-new" data-fx="new" aria-label="New topic" title="New topic">${ico("plus")}</button></div>
+ const pcOpen=!!FX.pc[r._id],rcOpen=!!FX.rc[r._id];
+ return`<div class="fxd${pcOpen?"":" pc"}${rcOpen?"":" rc"}">
+<aside class="fxd-rail" aria-label="Topics">${rcOpen?`<div class="fxd-rh"><div><h3>Discussion</h3><span class="fxd-sub">${T.length} topics on ${esc(r.no)}</span></div><div class="fxd-rb"><button type="button" class="fxd-new" data-fx="new" aria-label="New topic" title="New topic">${ico("plus")}</button><button type="button" class="fxd-pt" data-fx="rail" aria-expanded="true" aria-label="Collapse topics" title="Collapse">&#8249;</button></div></div>
+  `:`<button type="button" class="fxd-pt" data-fx="rail" aria-expanded="false" aria-label="Show topics" title="Show topics">&#8250;</button><button type="button" class="fxd-new" data-fx="new" aria-label="New topic" title="New topic">${ico("plus")}</button><div class="fxd-mini">${T.map(t=>`<button type="button" class="fxd-dot${t.done?" ok":""}${t.id===sel.id?" on":""}" data-fxt="${esc(t.id)}" title="${esc(t.title)}" aria-label="${esc(t.title)}"></button>`).join("")}</div>`}
   <label class="fxd-search">${ico("search")}<input type="search" data-fx-search placeholder="Search topics" aria-label="Search topics" autocomplete="off"></label>
   <div class="fxd-tl">${open.length?`<h4>Open <b>${open.length}</b></h4>${open.map(topic).join("")}`:""}${done.length?`<h4>Resolved <b>${done.length}</b></h4>${done.map(topic).join("")}`:""}<p class="fxd-none" hidden>No topic matches.</p></div></aside>
  <section class="fxd-main" aria-label="${esc(sel.title)}">
@@ -7984,13 +7986,16 @@ function fxInner(r){const T=fxThreads(r);const sel=T.find(t=>t.id===FX.sel[r._id
    <div class="fxd-row"><button type="button" class="fxd-plus" data-fx="attach" aria-label="Attach files" title="Attach files">${ico("plus")}</button><input type="file" multiple hidden data-fx-file><textarea data-fx-reply rows="1" placeholder="Write a reply or attach a file" aria-label="Reply"></textarea><kbd class="fxd-kbd" aria-hidden="true">Ctrl + Enter</kbd><button type="button" class="fxd-send" data-fx="send" aria-label="Post reply" title="Post reply (Ctrl+Enter)" ${(FX.files[r._id]||[]).length?"":"disabled"}>${ico("up")}</button></div></div>
   <p class="fxd-as">Replying as <b>${esc(mu.full_name)}</b>, ${esc(roleName(S.role))}. Files are listed on the request; the prototype keeps their names, not their content.</p></div>
  </section>
- <aside class="fxd-people" aria-label="People and files"><h4>On this request <b>${people.length}</b></h4><ul>${people.map(p=>`<li><span class="fx-av" style="--h:${fxHue(p.key||p.name)}" aria-hidden="true">${esc(initials(p.name))}</span><span class="fxd-pn"><b>${esc(p.name)}</b><small>${esc(p.role)} · ${p.n} message${p.n>1?"s":""}</small></span></li>`).join("")}</ul>
-  <h4>Files shared <b>${files.length}</b></h4>${files.length?`<ul class="fxd-files">${files.map(x=>`<li>${ico("doc")}<span><b>${esc(x.a)}</b><small>${esc(x.w)} in ${esc(x.t)}</small></span></li>`).join("")}</ul>`:`<p class="fxd-sub">Nothing shared yet.</p>`}</aside></div>`}
+ <aside class="fxd-people" aria-label="People and files">${pcOpen?`<div class="fxd-ph"><h4>On this request <b>${people.length}</b></h4><button type="button" class="fxd-pt" data-fx="people" aria-expanded="true" aria-label="Collapse people and files" title="Collapse">&#8250;</button></div>`:`<button type="button" class="fxd-pt" data-fx="people" aria-expanded="false" aria-label="Show people and files" title="Show people and files">&#8249;</button><div class="fxd-mini" aria-hidden="true">${people.slice(0,6).map(p=>`<span class="fx-av" title="${esc(p.name)}" style="--h:${fxHue(p.key||p.name)}">${esc(initials(p.name))}</span>`).join("")}${people.length>6?`<span class="fxd-more">+${people.length-6}</span>`:""}${files.length?`<span class="fxd-fc" title="${files.length} file${files.length>1?"s":""} shared">${ico("doc")}<b>${files.length}</b></span>`:""}</div>`}
+  ${pcOpen?`<ul>${people.map(p=>`<li><span class="fx-av" style="--h:${fxHue(p.key||p.name)}" aria-hidden="true">${esc(initials(p.name))}</span><span class="fxd-pn"><b>${esc(p.name)}</b><small>${esc(p.role)} · ${p.n} message${p.n>1?"s":""}</small></span></li>`).join("")}</ul>
+  <h4>Files shared <b>${files.length}</b></h4>${files.length?`<ul class="fxd-files">${files.map(x=>`<li>${ico("doc")}<span><b>${esc(x.a)}</b><small>${esc(x.w)} in ${esc(x.t)}</small></span></li>`).join("")}</ul>`:`<p class="fxd-sub">Nothing shared yet.</p>`}`:""}</aside></div>`}
 function fxForumBlock(r){const b=document.createElement("div");b.className="blk fx";b.dataset.fxcase=r._id;b.innerHTML=fxInner(r);return b}
 document.addEventListener("click",e=>{const root=e.target.closest&&e.target.closest(".fx[data-fxcase]");if(!root)return;const r=DB.req.find(x=>x._id===root.dataset.fxcase);if(!r)return;
  const paint=()=>{const keep=root.querySelector("[data-fx-reply]");const kv=keep?keep.value:"";root.innerHTML=fxInner(r);const nt=root.querySelector("[data-fx-reply]");if(nt&&kv){nt.value=kv;nt.dispatchEvent(new Event("input",{bubbles:true}))};const ps=root.querySelector("#fxdPosts");if(ps)ps.scrollTop=ps.scrollHeight};const t=e.target.closest("[data-fxt]");
  if(t){FX.sel[r._id]=t.dataset.fxt;paint();return}
  const a=e.target.closest("[data-fx]");if(!a)return;const k=a.dataset.fx;const base=()=>({by:S.user,byName:me().full_name,role:roleName(S.role),roleKey:S.role,at:today()+" "+nowTime().slice(0,5)});
+ if(k==="rail"){FX.rc[r._id]=!FX.rc[r._id];paint();return}
+ if(k==="people"){FX.pc[r._id]=!FX.pc[r._id];paint();return}
  if(k==="new"){FX.nf[r._id]=!FX.nf[r._id];paint();return}
  if(k==="attach"){const fi=root.querySelector("[data-fx-file]");if(fi)fi.click();return}
  if(k==="rmfile"){(FX.files[r._id]||[]).splice(+a.dataset.i,1);paint();return}
@@ -8126,10 +8131,16 @@ document.head.insertAdjacentHTML("beforeend",`<style id="fxcss">
 .fxd-people{padding:16px;border-left:1px solid var(--line2,var(--line));display:flex;flex-direction:column;gap:10px;min-width:0;overflow-y:auto;max-height:640px}
 .fxd-people h4{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:6px 0 2px}.fxd-people h4 b{color:var(--text);margin-left:4px}
 .fxd-people ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}.fxd-people li{display:flex;gap:10px;align-items:center;min-width:0}
+.fxd.rc{grid-template-columns:56px minmax(0,1fr) 250px}.fxd.rc.pc{grid-template-columns:56px minmax(0,1fr) 56px}.fxd.pc{grid-template-columns:270px minmax(0,1fr) 56px}
+.fxd-rb{display:flex;gap:6px;align-items:center}.fxd.rc .fxd-rail{align-items:center;padding:12px 8px}.fxd.rc .fxd-rail>.fxd-search,.fxd.rc .fxd-rail>.fxd-tl{display:none}.fxd.rc .fxd-mini .fxd-dot{cursor:pointer;padding:0;background:none}.fxd.rc .fxd-mini .fxd-dot.on{box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 25%,transparent)}.fxd.pc .fxd-people{padding:12px 8px;align-items:center;gap:12px}
+.fxd-ph{display:flex;align-items:center;justify-content:space-between;gap:8px}.fxd-ph h4{margin:0}
+.fxd-pt{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0 0 2px}.fxd-pt:hover{border-color:var(--brand);color:var(--brand)}
+.fxd-mini{display:flex;flex-direction:column;align-items:center;gap:8px}.fxd-more{font-size:11.5px;font-weight:700;color:var(--muted)}
+.fxd-fc{display:grid;justify-items:center;gap:1px;color:var(--brand);font-size:11px}.fxd-fc svg{width:16px;height:16px}.fxd-fc b{color:var(--text)}
 .fxd-pn{display:grid;min-width:0}.fxd-pn b{font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fxd-pn small,.fxd-files small{font-size:11.5px;color:var(--muted)}
 .fxd-files li{align-items:flex-start;padding:8px 10px;border:1px solid var(--line2,var(--line));border-radius:10px;background:var(--raise)}.fxd-files svg{flex:none;width:16px;height:16px;color:var(--brand);margin-top:2px}.fxd-files span{display:grid;min-width:0}.fxd-files b{font-size:12.5px;color:var(--ink);overflow-wrap:anywhere}
-@media (max-width:1180px){.fxd{grid-template-columns:260px minmax(0,1fr)}.fxd-people{display:none}}
-@media (max-width:820px){.fxd{grid-template-columns:minmax(0,1fr)}.fxd-rail{border-right:0;border-bottom:1px solid var(--line2,var(--line))}.fxd-tl{max-height:200px}.fxd-posts{max-height:none}}
+@media (max-width:1180px){.fxd,.fxd.pc{grid-template-columns:260px minmax(0,1fr)}.fxd.rc,.fxd.rc.pc{grid-template-columns:56px minmax(0,1fr)}.fxd-people{display:none}}
+@media (max-width:820px){.fxd,.fxd.pc,.fxd.rc,.fxd.rc.pc{grid-template-columns:minmax(0,1fr)}.fxd-rail{border-right:0;border-bottom:1px solid var(--line2,var(--line))}.fxd-tl{max-height:200px}.fxd-posts{max-height:none}}
 </style>`);
 
 
