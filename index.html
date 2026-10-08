@@ -4660,7 +4660,7 @@ function ws20(r){return wSec("Step 20","SFO for your approval",`Signed by ${esc(
 function p5NegCalc(r){const F=WS.f;const offs=(r.offers||[]).filter(o=>+o.amount>0&&r.sfo?.eval?.items?.[o.id]?.ok!=="no");const aw=offs.find(o=>o.id===F.award);const fin=aw?+(F.fin[aw.id]||0):0;const val=fin>0?fin:0;const ex=aw&&val?p5Eur(val,aw.currency):null;
  const chain=ex?chainFor(r.entity,"SOURCING",ex.eur):[];const low=offs.length?Math.min(...offs.map(o=>{const x=p5Eur(o.amount,o.currency);return x?x.eur:Infinity})):null;return{offs,aw,val,ex,chain,low}}
 function ws21(r){const F=WS.f;const c=p5NegCalc(r);const sug=r.sfo?.eval?.suggested;
- return wSec("Step 21","Negotiated offers","Enter the final price after negotiation for each technically acceptable offer and choose the supplier to award.",`<div class="tablewrap"><table class="p5-tbl"><thead><tr><th>Award</th><th>Bidder</th><th>Initial offer</th><th>Final after negotiation</th><th>Saving</th></tr></thead><tbody>${c.offs.map(o=>{const f=+(F.fin[o.id]||0);const sv=f>0?+o.amount-f:0;return`<tr class="${F.award===o.id?"win":""}"><td><input type="radio" name="w_award" aria-label="Award ${esc(o.name)}" data-k="award" data-rr value="${o.id}" ${F.award===o.id?"checked":""}></td><td class="wrap"><b>${esc(o.name)}</b>${o.id===sug?' <span class="chip ok">Initiator suggests</span>':""}</td><td class="num">${esc(money(o.amount,o.currency))}</td><td><input type="number" min="0" step="any" inputmode="decimal" aria-label="Final price, ${esc(o.name)}" data-k="fin.${o.id}" data-rr value="${esc(F.fin[o.id]??"")}"> <span class="small sub">${esc(o.currency)}</span></td><td class="num">${f>0?`${esc(money(sv,o.currency))} (${Math.round(sv/+o.amount*1000)/10} %)`:"—"}</td></tr>`}).join("")}</tbody></table></div>${wfe("award")}${wfe("fin")}
+ return wSec("Step 21","Negotiated offers","Enter the final price after negotiation for each technically acceptable offer and choose the supplier to award.",`${r.flow==="SCRAP"?NegDesk.scrap.box(r):""}<div class="tablewrap"><table class="p5-tbl"><thead><tr><th>Award</th><th>Bidder</th><th>Initial offer</th><th>Final after negotiation</th><th>Saving</th></tr></thead><tbody>${c.offs.map(o=>{const f=+(F.fin[o.id]||0);const sv=f>0?+o.amount-f:0;return`<tr class="${F.award===o.id?"win":""}"><td><input type="radio" name="w_award" aria-label="Award ${esc(o.name)}" data-k="award" data-rr value="${o.id}" ${F.award===o.id?"checked":""}></td><td class="wrap"><b>${esc(o.name)}</b>${o.id===sug?' <span class="chip ok">Initiator suggests</span>':""}</td><td class="num">${esc(money(o.amount,o.currency))}</td><td><input type="number" min="0" step="any" inputmode="decimal" aria-label="Final price, ${esc(o.name)}" data-k="fin.${o.id}" data-rr value="${esc(F.fin[o.id]??"")}"> <span class="small sub">${esc(o.currency)}</span></td><td class="num">${f>0?`${esc(money(sv,o.currency))} (${Math.round(sv/+o.amount*1000)/10} %)`:"—"}</td></tr>`}).join("")}</tbody></table></div>${wfe("award")}${wfe("fin")}
   ${c.aw&&sug&&c.aw.id!==sug?`<div class="ri-res warn" style="margin-top:12px"><b>Different from the Initiator's suggestion</b><p>Explain the award in the comment; it goes into the history and the sourcing presentation.</p></div>`:""}
   <div class="form" style="margin-top:14px"><label class="ri-tick"><input type="checkbox" data-k="pres" data-rr ${F.pres?"checked":""} ${wfi("pres")}> The sourcing presentation is ready and sent in Globe</label>${wfe("pres")}${wIn("note","Comment for the history",{ta:1,rows:2,ph:"Optional, unless you award a different supplier"})}</div>`)}
 /* 22/23 sourcing approval */
@@ -6756,10 +6756,13 @@ whyText=function(r,w,code=S.role){if(w&&(w.via==="nb"||w.via==="nbbuyer")){const
   return`AIS runs NB step ${r.step} (${esc(stepRow("NegBot",r.step)?.name||"")}); ${esc(roleName(code))} follows it${x?.mode?` in ${esc(INC9.modes[x.mode])} mode`:""}.`}return p9.whyText(r,w,code)};
 p9.act=act;
 act=function(id,kind,comment=""){const r=DB.req.find(x=>x._id===id);if(nbMan(r)){closeDrawer(true);nbOpen(r._id);return}return p9.act(id,kind,comment)};
-function nbOpen(id){const r=nbCase(id);if(!r)return;if(!access(S.role,S.entity).mods.some(m=>m[0]==="nb")){toast("The Negotiation Bot module is not open to this role.");return}NBV.case=id;NBV.ctab="";NBV.tab="cases";S.module="nb";S.ws=null;renderShell();$("#work").scrollTop=0}
+/* The Negotiation Desk event of a bot case, when the Desk is the one negotiating it. */
+function nbDeskEvent(nb){const gp=nb&&nb.request_id?DB.req.find(x=>x._id===nb.request_id):null;return gp&&gp.lb&&gp.lb.neg&&gp.lb.neg.event_id||""}
+function nbOpen(id){const r=nbCase(id);if(!r)return;const ev=r.desk?nbDeskEvent(r):"";if(ev){closeDrawer(true);negGo("/events/"+encodeURIComponent(ev));return}if(!access(S.role,S.entity).mods.some(m=>m[0]==="nb")){toast("The Negotiation Bot module is not open to this role.");return}NBV.case=id;NBV.ctab="";NBV.tab="cases";S.module="nb";S.ws=null;renderShell();$("#work").scrollTop=0}
 p9.openCase=openCase;
 openCase=function(id){p9.openCase(id);const r=DB.req.find(x=>x._id===id);const d=$("#drawer");if(!r||d.hidden||d.dataset.kind!=="case")return;
  const nb=r.module==="NegBot"?r:(r.nb?lbNb(r):null);if(!nb||!nbMan(nb))return;const x=nbX(nb);const gp=r.module==="GP"?r:null;
+ if(nb.desk&&nbDeskEvent(nb)){if(nb.module==="NegBot"&&r.module==="NegBot"){const da=d.querySelector("#doAct");if(da)da.innerHTML=`${ico("nb")}Open in the Negotiation Bot`}return}
  d.querySelectorAll("#lbRun").forEach(b=>b.closest(".actrow")?.remove());
  const h=`<div class="blk" id="p9Blk"><h3>Negotiation Bot</h3><p style="margin:0 0 8px">${stChip(caseStatus(nb))} <b>${esc(nb.no)}</b> ${x.mode?nbModeChip(x.mode):""}. ${esc(nbNext(nb))}</p>${gp?.nbShadow?`<p class="fine">Shadow result from ${esc(gp.nbShadow.no)}: bot reached ${esc(inr(gp.nbShadow.lowN))} vs initial ${esc(inr(gp.nbShadow.lowI))}.</p>`:""}
   <button class="btn ${nb.module==="NegBot"&&whoAt(nb).task.includes(S.role)?"pri":""}" id="p9Go">${ico("nb")}Open in the Negotiation Bot</button></div>`;
@@ -7622,7 +7625,7 @@ openCase=function(id){
  openCaseDesk(id);const r=DB.req.find(x=>x._id===id);const d=$("#drawer");if(!r||d.hidden||d.dataset.kind!=="case")return;
  const gp=r.module==="NegBot"&&r.request_id?DB.req.find(x=>x._id===r.request_id):r;if(!gp||!(gp.lb&&gp.lb.neg))return;
  if(NegDesk.owes(gp))NegDesk.approveInDesk(gp);
- const html=`<div class="blk" id="ndBlk"><h3>Negotiation Desk</h3>${NegDesk.holder(gp)}</div>`;
+ const html=`<div class="blk" id="ndBlk"><h3>Negotiation Desk</h3>${NegDesk.holder(gp,r.module==="NegBot")}</div>`;
  const a=d.querySelector("#p9Blk")||d.querySelector("#p7Blk")||d.querySelector(".dr-b > .blk");if(a)a.insertAdjacentHTML("afterend",html);else d.querySelector(".dr-b")?.insertAdjacentHTML("afterbegin",html)};
 const openCase1=openCase;openCase=function(id){const r=DB.req.find(x=>x._id===id);if(r&&r.status!=="DRAFT"&&S.user){SEEN[seenK(r)]=1;try{localStorage.setItem("ais.seen",JSON.stringify(SEEN))}catch(e){}IT=null}return dtRun(()=>openCase1(id),{kind:"case",id})};
 const fkOpen1=fkOpen;fkOpen=function(id){return dtRun(()=>fkOpen1(id),{kind:"fskcase",id})};
@@ -8250,6 +8253,14 @@ try{if(!localStorage.getItem("ais_theme_light_default")){localStorage.setItem("a
 if(!document.documentElement.dataset.theme)document.documentElement.dataset.theme="light";
 window.addEventListener("message",e=>{if(e.origin!==NEG_BASE||!e.data)return;
  if(typeof e.data.negHeight==="number"){const f=document.getElementById("negFrame");if(f)f.style.height=Math.max(480,e.data.negHeight)+"px";return}
+ /* The Buyer confirmed the result in the Desk: read it now, then take the user to the request at its new step */
+ const nd=e.data.negDone;if(nd){const k=String(nd.case_no||"");const r=k&&DB.req.find(x=>{const n=x.lb&&x.lb.neg,z=x.sneg;return!!(n&&(n.event_id===k||n.external_ref===k)||z&&(z.event_id===k||z.external_ref===k))});
+  if(!r){toast("This negotiation is not linked to a request in AIS.");return}
+  (async()=>{const scrap=!!(r.sneg&&(r.sneg.event_id===k||r.sneg.external_ref===k));
+   try{if(scrap)await NegDesk.scrap.refresh(r);else await NegDesk.getStatus(r,false)}catch(x){}
+   S.module="home";S.ws=null;WS=null;renderShell();
+   if(scrap&&S.role==="BUYER"&&+r.step===21)openStep(r._id);else openCase(r._id);
+   toast(scrap?`${r.no}: the negotiated prices are ready at step 21.`:`${r.no} moved on to step ${r.step}.`)})();return}
  /* "Open case in AIS" inside the Negotiation Desk sends the event id; find the request it belongs to and open it */
  const oc=e.data.negOpenCase;if(oc){const k=String(oc.case_no||oc.event_id||"");const r=k&&DB.req.find(x=>{const n=x.lb&&x.lb.neg;return n&&(n.event_id===k||n.external_ref===k)||x.no===k||x.no+"-NEG"===k});
   if(!r){toast("This negotiation is not linked to a request in AIS.");return}
@@ -8860,7 +8871,7 @@ const NegDesk=(()=>{
     <p class="fine" style="margin:10px 0 0;color:#555;word-break:break-all">Locked ${esc(d(c.locked_at))}. Document hash (SHA-256) ${esc(c.doc_hash)}</p>
    </div>
    <div class="actrow" style="margin-top:8px"><button class="btn" type="button" data-negdesk="contractopen" data-id="${esc(r._id)}">Open in the Negotiation Desk</button><a class="btn" href="${esc(url)}?print=1" target="_blank" rel="noopener noreferrer">Download or print (PDF)</a></div></div>`}
- function boxHTML(r){
+ function boxHTML(r,single){
   const N=r.lb&&r.lb.neg;if(!N)return"";
   const c=CHIP[N.state]||["warn",N.state];const wake=N.state==="SENDING"&&Date.now()-(N.started||0)>cfg.wakeMs;
   const row=(k,v)=>v?`<div class="ndrow"><span>${esc(k)}</span><b>${esc(v)}</b></div>`:"";
@@ -8871,19 +8882,20 @@ const NegDesk=(()=>{
   if(N.state==="FAILED")msg=`<p class="fine">${esc(N.reason||"No supplier agreed.")} The Buyer continues manually at step 33.</p>`;
   if(N.state==="IN_NEGOTIATION"&&N.event_id){
    const seen=N.result&&N.result.messages&&N.result.messages.length;
-   msg+=`<p class="fine">${seen?"The bot is negotiating in the Negotiation Desk. Open the conversation to watch it.":"The bot has not started yet. It starts when its conversation is open in the Negotiation Desk, or you can run it from here."}</p>`}
+   const none=!(N.sessions||[]).length&&!(N.result&&N.result.rounds);
+   msg+=`<p class="fine">${none?"The event is ready in the Negotiation Desk. The Buyer chooses the vendors, checks the negotiation points and starts the negotiation there.":seen?"The bot is negotiating in the Negotiation Desk. Open the conversation to watch it.":"The bot has not started yet. It starts when its conversation is open in the Negotiation Desk, or you can run it from here."}</p>`}
   if(N.sync_error&&N.state!=="ERROR")msg+=`<p class="fine">Last refresh failed: ${esc(N.sync_error)}</p>`;
   const can=access(S.role,S.entity).mods.some(m=>m[0]==="nb");
   return`<div class="ndbox"><p style="margin:0 0 8px"><span class="chip ${c[0]}">${esc(c[1])}</span> ${N.round?`<span class="fine">Round ${esc(N.round)}</span>`:""}</p>
    ${N.approve_err?`<p class="fine" style="color:var(--err,#b3261e)">The Desk could not approve the deal: ${esc(N.approve_err)}</p>`:""}${msg}${resultHTML(N)}${contractHTML(r,N)}${N.docs_error&&N.state!=="ERROR"?`<p class="fine">Some files were not sent: ${esc(N.docs_error)}</p>`:""}
-   <div class="actrow" style="margin-top:10px">${N.event_id&&can?`<button class="btn pri" type="button" data-negdesk="open" data-id="${esc(r._id)}">${ico("nb")}Open event in the Negotiation Desk</button>`:""}
+   <div class="actrow" style="margin-top:10px">${N.event_id&&can&&!single?`<button class="btn pri" type="button" data-negdesk="open" data-id="${esc(r._id)}">${ico("nb")}Open event in the Negotiation Desk</button>`:""}
    ${N.event_id&&N.state==="IN_NEGOTIATION"&&can&&(N.sessions||[]).length?`${N.result&&N.result.messages&&N.result.messages.length?`<button class="btn" type="button" data-negdesk="conv" data-id="${esc(r._id)}">${ico("chat")}Open the conversation</button>`:""}<button class="btn" type="button" data-negdesk="run" data-id="${esc(r._id)}">${ico("ff")}Run the bot now (prototype)</button>`:""}
    ${N.event_id&&N.state!=="SENDING"?`<button class="btn" type="button" data-negdesk="refresh" data-id="${esc(r._id)}">${ico("ff")}Refresh status</button>`:""}
    ${N.docs_error&&N.event_id?`<button class="btn" type="button" data-negdesk="files" data-id="${esc(r._id)}">Send files again</button>`:""}
    ${N.state==="ERROR"?`<button class="btn pri" type="button" data-negdesk="retry" data-id="${esc(r._id)}">Retry send</button>`:""}</div>
    ${S.role==="ADMIN"?`<p class="fine" style="margin-top:8px">Link: ${esc(active()?"Negotiation Desk":"simulated")} <button class="linkbtn" type="button" data-negdesk="mode">${active()?"Switch to the simulation":"Switch to the Negotiation Desk"}</button></p>`:""}</div>`}
- function paint(r){document.querySelectorAll(`[data-ndbox="${CSS.escape(r._id)}"]`).forEach(el=>{el.innerHTML=boxHTML(r)})}
- const holder=r=>`<div data-ndbox="${esc(r._id)}">${boxHTML(r)}</div>`;
+ function paint(r){document.querySelectorAll(`[data-ndbox="${CSS.escape(r._id)}"]`).forEach(el=>{el.innerHTML=boxHTML(r,el.dataset.single==="1")})}
+ const holder=(r,single)=>`<div data-ndbox="${esc(r._id)}"${single?' data-single="1"':""}>${boxHTML(r,!!single)}</div>`;
  /* After a result the page the user is looking at is redrawn: the request page, the step workspace or the list. The Desk frame is never reloaded mid-negotiation. */
  const repaint=r=>{try{
    if(S.module==="nb"){toast(`${r.no}: the Negotiation Desk result is in. Open the request to continue.`);return}
@@ -9061,11 +9073,66 @@ const NegDesk=(()=>{
   try{for(const sx of (N.sessions||[])){for(let i=0;i<24;i++){const out=await http("POST",`/api/sessions/${encodeURIComponent(sx.session_id)}/advance`);if(!out||out.status!=="active")break}}}
   catch(e){N.sync_error=e&&e.msg||"The bot could not be run.";save();paint(r)}
   await refresh(r,false)}
- function tick(){if(document.hidden||!active()||!DB||!DB.req)return;DB.req.forEach(r=>{const N=GP(r)&&r.lb.neg;if(N&&N.event_id&&(N.state==="IN_NEGOTIATION"||N.state==="ESCALATED")&&r.status==="IN_NEGBOT")refresh(r,true)})}
+ function tick(){if(document.hidden||!active()||!DB||!DB.req)return;DB.req.forEach(r=>{const Z=r.sneg;if(Z&&Z.event_id&&(Z.state==="IN_NEGOTIATION"||Z.state==="ESCALATED")&&+r.step===21)scrapRefresh(r);const N=GP(r)&&r.lb.neg;if(N&&N.event_id&&(N.state==="IN_NEGOTIATION"||N.state==="ESCALATED")&&r.status==="IN_NEGBOT")refresh(r,true)})}
  const owes=r=>{const N=GP(r)&&r.lb.neg;return!!(N&&N.event_id&&N.state==="AGREED"&&!N.desk_approved&&r.lb.cmp&&r.lb.cmp.status==="APPROVED")};
  function resume(){if(!DB||!DB.req)return;DB.req.forEach(r=>{if(owes(r))approveInDesk(r);const N=GP(r)&&r.lb.neg;if(N&&N.state==="SENDING"&&!busy.has(r._id)){N.state="ERROR";N.error="The page was closed while sending. Sending again.";createEvent(r)}})}
 
- return{cfg,buildEvent,createEvent,sendDocs,runBot,fetchContract,approveInDesk,owes,syncVendors,getStatus:refresh,apply:applyResult,holder,boxHTML,paint,active,tick,resume,
+
+ /* ---- scrap sale (GP step 21): the bidders' offers go to the Desk, the Buyer takes the result back into the form ---- */
+ const SC_OK=r=>(r.offers||[]).filter(o=>+o.amount>0&&r.sfo?.eval?.items?.[o.id]?.ok!=="no");
+ function scrapBuild(r){
+  const offs=SC_OK(r);if(!offs.length)return{error:"There is no offer with a value to negotiate."};
+  const sup=offs.map(o=>({key:o.id,sid:String(o.id).slice(0,40),name:String(o.name||"Bidder").slice(0,120),total:Math.max(1,r2(+o.amount*(lbRate(o.currency)||1)))}));
+  if(new Set(sup.map(z=>z.sid)).size!==sup.length)return{error:"Two offers come from the same bidder."};
+  const best=sup.slice().sort((a,b)=>b.total-a.total)[0];const sug=sup.find(z=>z.key===r.sfo?.eval?.suggested)||best;
+  const target=r2(best.total*1.1),limit=r2(best.total);
+  const L=[["Request",r.no],["Title",r.topic],["Category",r.category],["Entity",r.entity],["Offers received",String(sup.length)],["Sourcing type","Scrap sale"],["Initiator suggests",sug.name]];
+  return{payload:{case_no:String(r.no+"-NEG").slice(0,40),direction:"sell",supplier_id:sug.sid,topic:String(r.topic||r.no).slice(0,160),target,limit,entity:r.entity,requestor:"Initiator",cost_centre:String(r.cost_centre||r.cc||"-"),
+   details:L.filter(x=>x[1]).map(x=>({label:x[0],value:String(x[1]).slice(0,300)})),suppliers:sup.map(z=>({sid:z.sid,name:z.name,lang:"en",total:z.total,rating:4,payment_code:"ZD30"}))},map:sup.map(z=>({key:z.key,sid:z.sid}))}}
+ const scrapPaint=r=>{try{if(S.ws===r._id&&typeof wsPaint==="function")wsPaint()}catch(e){}};
+ async function scrapSend(r){
+  if(!r||busy.has("sc:"+r._id))return;const cur=r.sneg;if(cur&&cur.event_id&&cur.state!=="ERROR")return;
+  busy.add("sc:"+r._id);const built=scrapBuild(r);
+  const hist=(a,n)=>r.hist.push({d:today(),t:nowTime(),step:21,role:"",by:"Negotiation Desk",action:a,note:n});
+  if(built.error){r.sneg={state:"ERROR",error:built.error};hist("Could not send to the Negotiation Desk",built.error);busy.delete("sc:"+r._id);save();scrapPaint(r);return}
+  r.sneg={state:"SENDING",external_ref:built.payload.case_no,map:built.map,started:Date.now(),error:""};save();scrapPaint(r);
+  try{const out=await http("POST","/api/handoff",built.payload);
+   Object.assign(r.sneg,{state:"IN_NEGOTIATION",event_id:out.event_id,url:`${cfg.WEB}/events/${encodeURIComponent(out.event_id)}`,sessions:out.sessions||[],sent_at:stamp(),last_sync:stamp(),error:""});
+   hist("Scrap sale sent to the Negotiation Desk",`${out.event_id}: ${plural(built.payload.suppliers.length,"bidder")}, floor ${inr(built.payload.limit)}, target ${inr(built.payload.target)}.`)}
+  catch(e){Object.assign(r.sneg,{state:"ERROR",error:e&&e.msg||"The scrap sale could not be sent."});hist("Send to the Negotiation Desk failed",r.sneg.error)}
+  busy.delete("sc:"+r._id);save();scrapPaint(r)}
+ async function scrapRefresh(r){
+  const N=r&&r.sneg;if(!N||!N.event_id||polling.has("sc:"+r._id))return;polling.add("sc:"+r._id);
+  try{const res=await http("GET",`/api/handoff/${encodeURIComponent(N.external_ref)}/result`);
+   N.result={at:stamp(),status:res.status,rounds:res.rounds,recommended:res.recommended_supplier||"",reason:res.handback_reason||"",suppliers:(res.suppliers||[]).map(z=>({sid:z.sid,name:z.name,initial:z.initial_total,negotiated:z.negotiated_total}))};
+   N.state=res.status==="agreed"?"AGREED":res.status==="failed"?"FAILED":res.status==="partly_agreed"?"ESCALATED":"IN_NEGOTIATION";N.last_sync=stamp();N.sync_error="";
+   if(N.state==="AGREED"&&!N.told){N.told=1;r.hist.push({d:today(),t:nowTime(),step:21,role:"",by:"Negotiation Desk",action:"Negotiated prices returned from the Negotiation Desk",note:`${N.event_id}: ${res.rounds} rounds. The Buyer takes them into the form.`});notifyRoles(r,["BUYER"],`${r.no}: the Negotiation Desk agreed prices for the scrap sale. Take them into step 21 and confirm.`,"Negotiation Desk result returned",true)}
+   save()}
+  catch(e){if(e&&e.status===404){N.state="ERROR";N.event_id="";N.error="The Desk was restarted. Send it again."}else N.sync_error=e&&e.msg||"cannot be reached";save()}
+  polling.delete("sc:"+r._id);scrapPaint(r)}
+ async function scrapRun(r){const N=r&&r.sneg;if(!N||!N.event_id)return;
+  try{for(const sx of (N.sessions||[])){for(let i=0;i<24;i++){const out=await http("POST",`/api/sessions/${encodeURIComponent(sx.session_id)}/advance`);if(!out||out.status!=="active")break}}}
+  catch(e){N.sync_error=e&&e.msg||"The bot could not be run.";save()}
+  await scrapRefresh(r)}
+ function scrapUse(r){const N=r.sneg,R=N&&N.result;if(!R||!WS||!WS.f)return false;WS.f.fin=WS.f.fin||{};
+  (N.map||[]).forEach(m=>{const z=R.suppliers.find(x=>x.sid===m.sid);const o=(r.offers||[]).find(x=>x.id===m.key);if(z&&z.negotiated!=null&&o)WS.f.fin[o.id]=String(r2(z.negotiated/(lbRate(o.currency)||1)))});
+  const rec=(N.map||[]).find(m=>m.sid===R.recommended);if(rec)WS.f.award=rec.key;return true}
+ function scrapBox(r){
+  if(!active())return`<div class="ndbox"><p class="fine" style="margin:0">The Negotiation Desk link is off, so the Buyer enters the negotiated prices by hand.</p></div>`;
+  const N=r.sneg,btn=(a,t,pri)=>`<button class="btn${pri?" pri":""}" type="button" data-scrap="${a}" data-id="${esc(r._id)}">${t}</button>`;
+  if(!N||N.state==="ERROR")return`<div class="ndbox"><b>Negotiate with the Negotiation Bot</b><p class="fine" style="margin:6px 0 10px">Send the bidders' offers to the Negotiation Desk. The bot negotiates the price upwards with each bidder, and the result comes back here for you to confirm. Or enter the prices by hand below.</p>${N&&N.error?`<p class="fine" style="color:#a33">${esc(N.error)}</p>`:""}<div class="actrow">${btn("send",N?"Retry send":"Hand to the Negotiation Bot",true)}</div></div>`;
+  if(N.state==="SENDING")return`<div class="ndbox"><b>Sending to the Negotiation Desk...</b></div>`;
+  const R=N.result,rec=R&&R.suppliers.find(z=>z.sid===R.recommended);
+  const rows=R?R.suppliers.map(z=>{const up=z.negotiated!=null?z.negotiated-z.initial:null;return`<tr${R.recommended===z.sid?' style="font-weight:700"':""}><td>${esc(z.name)}${R.recommended===z.sid?" (best)":""}</td><td style="text-align:right">${esc(inr(z.initial))}</td><td style="text-align:right">${z.negotiated!=null?esc(inr(z.negotiated)):"not agreed"}</td><td style="text-align:right">${up!=null?esc(inr(up)):"-"}</td></tr>`}).join(""):"";
+  return`<div class="ndbox"><div class="ndrow"><b>Negotiation Bot</b><span>${esc({IN_NEGOTIATION:"In negotiation",ESCALATED:"Needs the Buyer",AGREED:"Agreed",FAILED:"No agreement"}[N.state]||N.state)}${R?`, round ${esc(R.rounds)}`:""}</span></div>
+   ${R?`<div style="overflow-x:auto"><table class="tbl" style="width:100%;margin-top:6px"><thead><tr><th>Bidder</th><th style="text-align:right">Initial offer</th><th style="text-align:right">After the bot</th><th style="text-align:right">Gain</th></tr></thead><tbody>${rows}</tbody></table></div>`:""}
+   ${N.state==="AGREED"&&rec?`<p class="fine" style="margin:8px 0 0">${esc(rec.name)} agreed ${esc(inr(rec.negotiated))}, ${esc(inr(rec.negotiated-rec.initial))} above its first offer.</p>`:""}
+   ${N.state==="FAILED"?`<p class="fine" style="margin:8px 0 0">${esc(R&&R.reason||"No bidder agreed.")} Enter the prices by hand below.</p>`:""}
+   ${N.state==="IN_NEGOTIATION"&&!(N.sessions||[]).length?`<p class="fine" style="margin:8px 0 0">The event is ready in the Negotiation Desk. The Buyer chooses the bidders, checks the points and starts the negotiation there.</p>`:""}
+   ${N.sync_error?`<p class="fine" style="color:#a33">${esc(N.sync_error)}</p>`:""}
+   <div class="actrow" style="margin-top:10px">${N.state==="AGREED"?btn("use","Use these prices in the form",true):""}${btn("open","Open in the Negotiation Desk")}${(N.state==="IN_NEGOTIATION"||N.state==="ESCALATED")&&(N.sessions||[]).length?btn("run","Run the bot now"):""}${btn("refresh","Refresh")}</div></div>`}
+ const scrap={send:scrapSend,refresh:scrapRefresh,run:scrapRun,use:scrapUse,box:scrapBox};
+ return{scrap,cfg,buildEvent,createEvent,sendDocs,runBot,fetchContract,approveInDesk,owes,syncVendors,getStatus:refresh,apply:applyResult,holder,boxHTML,paint,active,tick,resume,
   get mode(){return mode},set mode(v){mode=v==="simulate"?"simulate":"desk";try{localStorage.setItem("negdesk.mode",mode)}catch(e){}}}
 })();
 
@@ -9096,6 +9163,13 @@ P6_WS[33]=function(r){if(NegDesk.owes(r))NegDesk.approveInDesk(r);
  if(!(r.lb&&r.lb.neg))return base;
  return wSec("Step 33","Negotiation Desk",`The negotiation runs in the Negotiation Desk (Events, then Negotiations). The result returns here.`,NegDesk.holder(r))+base};
 document.addEventListener("click",e=>{
+ const sb=e.target.closest("[data-scrap]");
+ if(sb){const r=DB.req.find(x=>x._id===sb.dataset.id);const a=sb.dataset.scrap;if(!r)return;
+  if(a==="send")NegDesk.scrap.send(r);else if(a==="refresh")NegDesk.scrap.refresh(r);
+  else if(a==="run"){sb.disabled=true;toast("Running the bot in the Negotiation Desk...");NegDesk.scrap.run(r).then(()=>{sb.disabled=false})}
+  else if(a==="open"&&r.sneg&&r.sneg.event_id){closeDrawer(true);negGo("/events/"+encodeURIComponent(r.sneg.event_id))}
+  else if(a==="use"){if(NegDesk.scrap.use(r)){wsPaint();toast("The negotiated prices are in the form. Check them and continue.")}}
+  return}
  const b=e.target.closest("[data-negdesk]");if(!b)return;
  const r=DB.req.find(x=>x._id===b.dataset.id);const a=b.dataset.negdesk;
  if(a==="mode"){NegDesk.mode=NegDesk.active()?"simulate":"desk";toast(NegDesk.active()?"New hand-overs go to the Negotiation Desk.":NegDesk.cfg.API?"New hand-overs use the internal simulation.":"No Negotiation Desk address is set for this host, so the internal simulation is used.");if(r)NegDesk.paint(r);return}
