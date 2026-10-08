@@ -7155,11 +7155,11 @@ function crHTML(){crCols();const L=crScope();const cnt=k=>L.filter(c=>crBucket(c
   <select id="cr_win" aria-label="Expiry window"><option value="">Any expiry</option>${[...INC10.bk.map(b=>b[0]),"EXP","NONE"].map(k=>`<option value="${k}" ${CR.win===k?"selected":""}>${esc(crBkLab(k))}</option>`).join("")}</select>
   <select id="cr_st" aria-label="Status"><option value="">Any status</option>${sts.map(s=>`<option value="${s}" ${CR.st===s?"selected":""}>${esc(INC10.cst[s]||s)}</option>`).join("")}</select>
   <button class="btn" data-cr="csv">${ico("download")}Export CSV</button></div>
- <div class="tablewrap"><table><thead><tr><th>Request</th><th>Contract</th><th>Type</th><th>Supplier</th><th class="num">Value INR</th><th>Start</th><th>End</th><th>Expiry</th><th>Status</th><th>Next reminder</th><th>Sent</th></tr></thead><tbody>
- ${R.map(c=>{const r=crReq(c);const b=crBucket(c);return`<tr><td class="small wrap">${r?`<button class="linkbtn" data-case="${r._id}">${esc(r.no)}</button><div class="sub">${esc(r.topic)}</div>`:"—"}</td>
-  <td><button class="linkbtn" data-ctr="${esc(c.contract_id)}">${esc(c.contract_id)}</button><div class="small sub">${esc(c.contract_number)}</div></td><td class="small">${esc(INC10.ctype[c.contract_type]||c.contract_type)}</td><td class="small wrap">${esc(c.supplier_name||"—")}</td>
-  <td class="num small">${esc(inr(c.value_inr))}</td><td class="small">${esc(fmtD(c.start_date))||"—"}</td><td class="small">${esc(fmtD(c.end_date))||"—"}</td>
-  <td>${b==="NONE"?'<span class="sub small">Not monitored</span>':`<span class="chip ${b==="B0"||b==="EXP"?"warn":""}">${esc(crBkLab(b))}</span>`}</td><td><div class="stk">${crChip(c)}</div></td><td class="small">${esc(fmtD(crNext(c)))||"—"}</td><td class="small">${(c.rem||[]).length||""}</td></tr>`}).join("")||`<tr><td colspan="11" class="sub">No contract matches.</td></tr>`}</tbody></table></div>
+ <div class="tablewrap"><table class="cr-tbl"><thead><tr><th>Request</th><th>Contract</th><th>Type</th><th>Supplier</th><th class="num">Value INR</th><th>Start</th><th>End</th><th>Expiry</th><th>Status</th><th>Next reminder</th></tr></thead><tbody>
+ ${R.map(c=>{const r=crReq(c);const b=crBucket(c);const sent=(c.rem||[]).length;return`<tr><td class="wrap">${r?`<button class="linkbtn" data-case="${r._id}">${esc(r.no)}</button><span class="cr-s">${esc(r.topic)}</span>`:"—"}</td>
+  <td><button class="linkbtn" data-ctr="${esc(c.contract_id)}">${esc(c.contract_id)}</button><span class="cr-s">${esc(c.contract_number)}</span></td><td>${esc(INC10.ctype[c.contract_type]||c.contract_type)}</td><td class="wrap">${esc(c.supplier_name||"—")}</td>
+  <td class="num">${esc(inr(c.value_inr))}</td><td class="nw">${esc(fmtD(c.start_date))||"—"}</td><td class="nw">${esc(fmtD(c.end_date))||"—"}</td>
+  <td>${b==="NONE"?'<span class="cr-s" style="margin:0">Not monitored</span>':`<span class="cr-ex ${b==="B0"||b==="EXP"?"warn":""}">${esc(crBkLab(b))}</span>`}</td><td><div class="stk">${crChip(c)}</div></td><td class="nw">${esc(fmtD(crNext(c)))||"—"}${sent?`<span class="cr-s">${sent} sent</span>`:""}</td></tr>`}).join("")||`<tr><td colspan="10" class="sub">No contract matches.</td></tr>`}</tbody></table></div>
  <p class="fine">Renewal lead time comes from Admin › Renewal Rule; the reminder text from the Notification Template CONTRACT_RENEWAL; the cadence from Reminder Rule R-20.</p>`}
 function crBind(){const c=$("#content");if(!c)return;const on=(id,k)=>{const el=$("#"+id);if(el)el[el.tagName==="INPUT"?"oninput":"onchange"]=()=>{CR[k]=el.value;const p=el.selectionStart;render();if(el.tagName==="INPUT"){const n=$("#"+id);n.focus();try{n.setSelectionRange(p,p)}catch(e){}}}};
  on("cr_q","q");on("cr_type","type");on("cr_sup","sup");on("cr_win","win");on("cr_st","st");
@@ -8031,6 +8031,17 @@ document.head.insertAdjacentHTML("beforeend",`<style id="fxcss">
 .rp-tabs button .rp-tc{margin-left:6px;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--raise);color:var(--muted)}
 .rp-tabs button[aria-selected="true"] .rp-tc{background:var(--brand-soft);color:var(--brand)}
 .rp-body.tab-wide{grid-template-columns:minmax(0,1fr)}.rp-body.tab-wide>.rp-side{display:none}
+.cr-tbl{width:100%}
+.cr-tbl th,.cr-tbl td{padding:12px 8px;vertical-align:middle;font-size:13.5px}
+.cr-tbl th{white-space:nowrap}.cr-tbl td.nw{white-space:nowrap}
+.cr-tbl td.num,.cr-tbl th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cr-tbl .linkbtn{display:block;font:inherit;font-weight:650;text-align:left}
+.cr-tbl .cr-s{display:block;margin-top:2px;font-size:12px;color:var(--muted);line-height:1.35}
+.cr-tbl tbody tr:hover td{background:var(--raise)}
+.cr-ex{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.cr-ex::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}.cr-ex.warn::before{background:var(--amber)}
+.reg-sn{display:inline-block;min-width:24px;margin-right:7px;padding:1px 6px;border-radius:6px;background:var(--raise);color:var(--muted);font-size:11.5px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
+.reg-tbl td.wrap{min-width:150px}
 .cr-docs{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .cr-docs li{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-m);background:var(--panel)}
 .cr-dn{flex:1;min-width:0}.cr-dn b{display:block;overflow-wrap:anywhere}.cr-dn small{display:block;color:var(--muted);font-size:12px;margin-top:1px}
@@ -8338,9 +8349,9 @@ function regModels(){const seen=new Set();return visibleCases().filter(r=>r.modu
 function regFiltered(M){const q=REG.q.trim().toLowerCase();let L=M.filter(m=>(REG.tile==="all"||(REG.tile==="over"?m.over:m.kind===REG.tile))&&(!REG.flow||m.flow===REG.flow)&&(!REG.st||m.status===REG.st)&&(!REG.stype||m.stype===REG.stype)&&(!q||m.txt.includes(q)));
  const K={no:m=>m.no,topic:m=>m.topic.toLowerCase(),flow:m=>m.flow,amount:m=>m.amount,step:m=>m.stepN,status:m=>ST_LABEL[m.status]||m.status,init:m=>m.init,created:m=>m.created};const f=K[REG.sort]||K.created;
  return L.sort((a,b)=>{const x=f(a),y=f(b);const c=typeof x==="number"?x-y:String(x).localeCompare(String(y),undefined,{numeric:true});return(c||a.no.localeCompare(b.no,undefined,{numeric:true}))*REG.dir})}
-function regRowsHTML(L){return L.length?L.map(m=>{const r=m.r;return`<tr><td><button class="linkbtn" data-case="${r._id}">${esc(m.no)}</button></td><td class="wrap">${esc(m.topic)}<div class="small sub">${esc(m.stype)}</div></td><td class="small">${esc(m.flow)}</td>
-  <td class="reg-n small">${esc(money(r.amount,r.currency))}${r.budget_eur!=null&&r.currency!=="EUR"?`<div class="sub">EUR ${(+r.budget_eur).toLocaleString("en-IN")}</div>`:""}</td>
-  <td class="wrap small">${esc(m.step)}${m.who?`<div class="sub">${esc(m.who)}</div>`:""}</td><td><div class="stk">${stChip(m.status)}${m.over?'<span class="st st-r">Overdue</span>':""}${excChip(r)}</div></td><td class="small">${esc(m.init)}</td><td class="small">${esc(m.created?fmtD(m.created):"")}</td></tr>`}).join(""):`<tr><td colspan="8" class="sub">No request matches the filters.</td></tr>`}
+function regRowsHTML(L){const stp=t=>{const x=String(t||"").match(/^(\d+)\s+(.*)$/);return x?`<span class="reg-sn">${esc(x[1])}</span>${esc(x[2])}`:esc(t||"")};return L.length?L.map(m=>{const r=m.r;return`<tr><td><button class="linkbtn" data-case="${r._id}">${esc(m.no)}</button></td><td class="wrap">${esc(m.topic)}<span class="cr-s">${esc(m.stype)}</span></td><td class="nw">${esc(m.flow)}</td>
+  <td class="reg-n num">${esc(money(r.amount,r.currency))}${r.budget_eur!=null&&r.currency!=="EUR"?`<span class="cr-s">EUR ${(+r.budget_eur).toLocaleString("en-IN")}</span>`:""}</td>
+  <td class="wrap">${stp(m.step)}${m.who?`<span class="cr-s">${esc(m.who)}</span>`:""}</td><td><div class="stk">${stChip(m.status)}${m.over?'<span class="st st-r">Overdue</span>':""}${excChip(r)}</div></td><td>${esc(m.init)}</td><td class="nw">${esc(m.created?fmtD(m.created):"")}</td></tr>`}).join(""):`<tr><td colspan="8" class="sub">No request matches the filters.</td></tr>`}
 function regHTML(){const M=regModels();const cnt=k=>M.filter(m=>k==="all"||(k==="over"?m.over:m.kind===k)).length;
  const tiles=[["all","All requests"],["open","Open"],["over","Overdue"],["draft","Drafts"],["closed","Closed"],["declined","Declined"]].filter(([k])=>!["draft","declined"].includes(k)||cnt(k));
  const uniq=f=>[...new Set(M.map(f).filter(Boolean))].sort();const opt=(a,sel,all)=>`<option value="">${all}</option>`+a.map(v=>`<option value="${esc(v)}"${v===sel?" selected":""}>${esc(v)}</option>`).join("");
@@ -8354,7 +8365,7 @@ function regHTML(){const M=regModels();const cnt=k=>M.filter(m=>k==="all"||(k===
   <select id="reg_stype" aria-label="Sourcing type">${opt(uniq(m=>m.stype),REG.stype,"All sourcing types")}</select>
   <select id="reg_st" aria-label="Status"><option value="">Any status</option>${sts.map(k=>`<option value="${k}"${k===REG.st?" selected":""}>${esc(ST_LABEL[k]||k)}</option>`).join("")}</select>
   <button class="btn" data-reg="csv">${ico("download")}Export CSV</button></div>
- <div class="tablewrap"><table><thead><tr>${th("no","Request")}${th("topic","Topic")}${th("flow","Flow")}${th("amount","Budget","reg-n")}${th("step","Current step")}${th("status","Status")}${th("init","Initiator")}${th("created","Created")}</tr></thead><tbody id="regBody">${regRowsHTML(L)}</tbody></table></div>
+ <div class="tablewrap"><table class="cr-tbl reg-tbl"><thead><tr>${th("no","Request")}${th("topic","Topic")}${th("flow","Flow")}${th("amount","Budget","reg-n num")}${th("step","Current step")}${th("status","Status")}${th("init","Initiator")}${th("created","Created")}</tr></thead><tbody id="regBody">${regRowsHTML(L)}</tbody></table></div>
  <p class="reg-foot" id="regCount" aria-live="polite">Showing ${L.length} of ${M.length} requests</p></section>
  ${regStageHTML(M)}`}
 
