@@ -2717,14 +2717,14 @@ const TK_RIGHT='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stro
 let SEEN={};try{SEEN=JSON.parse(localStorage.getItem("ais.seen")||"{}")}catch(e){}
 const seenK=r=>S.user+"|"+S.role+"|"+r._id+"|"+r._arrKey;
 /* Only the latest arrival can be New: the task that reached this role most recently. Older unopened ones fall back to their due bucket. */
-const arrAt=r=>{const h=(r.hist||[]).slice(-1)[0];return(r.entered||"")+"|"+(h&&h.t||"")};
+const arrAt=r=>{if(r._arrAt)return"9|"+String(r._arrAt).padStart(15,"0");const h=(r.hist||[]).slice(-1)[0];return"0|"+(r.entered||"")+"|"+(r.created||"")+"|"+String(r.no||"").slice(-6)+"|"+(h&&h.t||"")};
 let NNEW={I:null,id:null};
 const newestId=()=>{const I=items();if(NNEW.I!==I){let b=null,bk="";I.T.forEach(x=>{if(x.r.status==="DRAFT"||!x.r._arrKey||!tkAction(x.r,x.w).eff)return;const k=arrAt(x.r);if(!b||k>=bk){b=x.r;bk=k}});NNEW={I,id:b?b._id:null}}return NNEW.id};
 const isNewTask=(r,eff)=>!!eff&&r.status!=="DRAFT"&&!!r._arrKey&&!SEEN[seenK(r)]&&r._id===newestId();
 /* Every save stamps a request whose step, stage or status just changed: whoever holds it next sees it as New. */
 const arrSig=r=>[r.step,r.lb&&r.lb.stage||"",r.status||""].join("|");
 const ARR={};(DB.req||[]).forEach(r=>ARR[r._id]=arrSig(r));
-const save0=save;save=function(){(DB.req||[]).forEach(r=>{const k=arrSig(r);if(ARR[r._id]!==k){if(r.status!=="DRAFT")r._arrKey=k;ARR[r._id]=k;IT=null}});return save0()};
+const save0=save;save=function(){(DB.req||[]).forEach(r=>{const k=arrSig(r);if(ARR[r._id]!==k){if(r.status!=="DRAFT"){r._arrKey=k;r._arrAt=Date.now()}ARR[r._id]=k;IT=null}});return save0()};
 function tkAction(r,w){
  const eff=w.task.includes(S.role)&&(S.role!=="BUYER"||!p5Owner(r)||p5Owner(r)===S.user);const dn=r.status==="IN_NEGBOT";
  const s=stepRow(r.module,r.step);
@@ -2864,7 +2864,7 @@ document.head.insertAdjacentHTML("beforeend",`<style id="hmfcss">
 .hm-below:not(:has(.hm-roles)){grid-template-columns:minmax(0,1fr)}
 .hm-below .hm-ren-card{margin-top:0}
 .content .hm-below .hm-ren-card{margin:0;display:flex;flex-direction:column}.hm-below .hm-ren-card .rn-wrap{flex:1}
-.hm-below .hm-roles{display:flex;flex-direction:column;gap:16px;margin-top:0}.hm-below .hm-roles>.panel{margin:0}.hm-below .hm-roles>.panel:last-child{flex:1}
+.hm-below .hm-roles{display:flex;flex-direction:column;align-items:stretch;gap:16px;margin-top:0}.hm-below .hm-roles>.panel{margin:0}.hm-below .hm-roles>.panel:last-child{flex:1}
 @media (max-width:1180px){.hm-below{grid-template-columns:minmax(0,1fr)}.hm-below .hm-roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}.hm-below .hm-roles>.panel:last-child{flex:none}}
 .hm-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 22px 14px;border-bottom:1px solid var(--line2,var(--line))}
 .hm-q{position:relative;flex:1 1 280px;min-width:200px;display:flex;align-items:center}.hm-q svg{position:absolute;left:12px;width:16px;height:16px;color:var(--muted);pointer-events:none}
@@ -4285,7 +4285,11 @@ openCase=function(id){openCase0(id);const r=DB.req.find(x=>x._id===id);const d=$
   $("#riXOk").onclick=()=>excDecide(r._id,true,$("#riXNote").value.trim());$("#riXNo").onclick=()=>{const n=$("#riXNote").value.trim();if(!n){$("#riXNote").setAttribute("aria-invalid","true");$("#riXNote").focus();toast("Add a comment to reject the exception.");return}excDecide(r._id,false,n)}}
  else if(mine&&r.module==="GP"&&[8,9].includes(+r.step)&&S.role==="INITIATOR"&&r.route&&box){box.outerHTML=`<div class="actbox"><p style="margin:0;font-size:13.5px">The FSK approval is in. Upload the RFQ package and propose bidders; the request then goes to your Cost Center Head.</p><div class="actrow"><button class="btn pri" id="riRfqGo">${ico("upload")}Complete the RFQ package</button></div></div>`;$("#riRfqGo").onclick=()=>openIntake({caseId:r._id,mode:"rfq"})}
  else if(INC4.sfoSteps.includes(+r.step)&&sfoBlocked(r)){const A=$("#doAct");if(A){A.disabled=true;A.title="Blocked until the prerequisite is recorded";A.closest(".actbox")?.insertAdjacentHTML("afterbegin",`<div class="err-box" role="alert">${esc(sfoMsg(r))}</div>`)}}
- if(sfoBlocked(r)&&S.role==="INITIATOR"&&r.initiator===S.user&&isOpen(r)){const tgt=$("#riCaseBlk");tgt?.insertAdjacentHTML("beforeend",`<div class="actrow" style="margin-top:10px"><button class="btn pri" id="riFulGo">${ico("check")}Record the ${esc(lcLab(excLabel(r.exc.type)))}</button></div>`);const g=$("#riFulGo");if(g)g.onclick=()=>openIntake({caseId:r._id,mode:"fulfil"})}};
+ if(sfoBlocked(r)&&S.role==="INITIATOR"&&r.initiator===S.user&&isOpen(r)){const lab=esc(lcLab(excLabel(r.exc.type)));const go=()=>openIntake({caseId:r._id,mode:"fulfil"});
+  /* an action box at the top of the page, and the button again inside the Prerequisite block; both scoped to the page being built */
+  const drb=d.querySelector(".dr-b");if(drb){drb.insertAdjacentHTML("afterbegin",`<div class="actbox ri-xb"><div class="ri-res warn"><b>Action needed from you</b><p>Record the ${lab}. The Buyer cannot upload offers or process the SFO until you do.</p></div><div class="actrow"><button class="btn pri" data-rifulgo>${ico("check")}Record the ${lab}</button></div></div>`)}
+  d.querySelector("#riCaseBlk")?.insertAdjacentHTML("beforeend",`<div class="actrow" style="margin-top:10px"><button class="btn pri" data-rifulgo>${ico("check")}Record the ${lab}</button></div>`);
+  d.querySelectorAll("[data-rifulgo]").forEach(g=>g.onclick=go)}};
 
 /* ---------- R-01: weekly reminder while an exception is open (US-085) ---------- */
 function riRemind(from,to){const rule=DB.reminder.find(x=>x._active&&x.rule_id==="R-01");if(!rule||rule.frequency!=="WEEKLY")return 0;const keys=new Set(DB.notif.map(n=>n.key));let made=0;
@@ -4514,7 +4518,7 @@ function p5CaseBlock(r){const L=p5RecordRows(r);const qh=p5QueriesHTML(r);if(!L.
  return`<div class="blk" id="p5Blk"><h3>Sourcing record</h3><p class="fine" style="margin:-2px 0 10px">What the Buyer has recorded for this request. Rows fill in as each sourcing step is completed.</p>${qh}${cells.length?`<dl class="dl" style="margin-top:${qh?10:0}px">${cells.join("")}</dl>`:""}${r.sfo?`<p class="fine" style="margin-top:8px">${p5Lock(r)}</p>`:""}</div>`}
 p5.openCase=openCase;
 openCase=function(id){p5.openCase(id);const r=DB.req.find(x=>x._id===id);const d=$("#drawer");if(!r||d.hidden||d.dataset.kind!=="case"||r.module!=="GP")return;
- const blk=p5CaseBlock(r);if(blk){const a=$("#riCaseBlk")||[...d.querySelectorAll(".dr-b > .blk")].find(b=>b.querySelector("h3")?.textContent==="Details");if(a)a.insertAdjacentHTML("afterend",blk);else d.querySelector(".dr-b > .blk")?.insertAdjacentHTML("beforebegin",blk)}
+ const blk=p5CaseBlock(r);if(blk){const a=d.querySelector("#riCaseBlk")||[...d.querySelectorAll(".dr-b > .blk")].find(b=>b.querySelector("h3")?.textContent==="Details");if(a)a.insertAdjacentHTML("afterend",blk);else d.querySelector(".dr-b > .blk")?.insertAdjacentHTML("beforebegin",blk)}
  const w=whoAt(r);const box=$("#doAct")?.closest(".actbox");const q=p5Q(r);
  if(INC5.flows.includes(r.flow)&&isOpen(r)&&(INC5.steps.includes(+r.step)||q)){
   if(box&&w.task.includes(S.role)&&!p5Mine(r))box.outerHTML=`<div class="actbox"><div class="ri-res info"><b>Assigned to another Buyer</b><p>${esc(uName(p5Owner(r)))} holds this request. Buyer steps go to the assigned Buyer only.</p></div></div>`;
@@ -5022,7 +5026,7 @@ openCase=function(id){p6.openCase(id);const r=DB.req.find(x=>x._id===id);const d
  const html=`<div class="blk" id="p6Blk"><h3>${esc(p6Lab(c))}</h3><p class="fine" style="margin:0 0 8px">${esc(inr(c.value_inr))}${c.currency!=="INR"?` (${esc(money(c.value,c.currency))})`:""} · ${esc(c.supplier_name||"")} · ${esc(fmtD(c.start_date))}${c.end_date?` to ${esc(fmtD(c.end_date))}`:c.delivery_date?`, delivery ${esc(fmtD(c.delivery_date))}`:""}</p>${p6ChainHTML(r,c)}
   ${doc?`<div class="actrow" style="margin-top:10px"><button class="btn" id="p6Dl">${ico("download")}Download ${esc(doc.file_name)}</button></div>`:""}
   ${logs.length?`<ul class="p6-log">${logs.map(x=>`<li><b>${esc(x.kind==="DOWNLOAD"?"Downloaded":x.kind==="SUPPLIER_EMAIL"?"Emailed to the supplier":x.kind==="USER_EMAIL"?"Emailed to the Initiator":"In-app notice to the Initiator")}</b> ${esc(x.kind==="DOWNLOAD"?uName(x.by):x.to||"")}, ${esc(fmtD(x.d))} ${esc(x.t||"")}</li>`).join("")}</ul>`:""}</div>`;
- const a=$("#p5Blk");if(a)a.insertAdjacentHTML("afterend",html);else d.querySelector(".dr-b > .blk")?.insertAdjacentHTML("beforebegin",html);
+ const a=d.querySelector("#p5Blk");if(a)a.insertAdjacentHTML("afterend",html);else d.querySelector(".dr-b > .blk")?.insertAdjacentHTML("beforebegin",html);
  const b=$("#p6Dl");if(b)b.onclick=()=>{c.dist=c.dist||[];c.dist.push({kind:"DOWNLOAD",channel:"AIS",by:S.user,d:today(),t:nowTime()});save();openCase(id);toast("Prototype: the file stays on the uploader's device. Your download is logged on the contract.")}};
 
 /* ---------- Chain display ---------- */
@@ -5954,16 +5958,17 @@ function fkMeetingHTML(){const e=S.entity;const types=DB.meeting.filter(t=>t.ent
  const rows=m.items.filter(it=>{const c=DB.fskcase.find(x=>x._id===it.case_id)||{};return(!F.com||c.commodity===F.com)&&(!F.brand||c.brand===F.brand)&&(!F.tos||c.type_of_sourcing===F.tos)&&(!FKV.nodec||!it.decision)});
  const nod=m.items.filter(it=>!it.decision).length;
  h+=`<div class="toolbar fk-tb" role="toolbar" aria-label="Meeting actions"><button class="btn" data-fk="exit">${ico("x")}Exit</button><button class="btn" data-fk="save" ${edit?"":"disabled"}>Save</button><button class="btn pri" data-fk="update" ${edit?"":"disabled"}>${ico("check")}Update</button><button class="btn" data-fk="proto" ${fkCoord()&&m.items.length&&m.items.every(x=>x.applied)?"":"disabled"}>${ico("doc")}Protocol</button><button class="btn" data-fk="nodec" aria-pressed="${FKV.nodec}">No decision?${nod?` <span class="chip warn">${nod}</span>`:""}</button>
-  <span class="fk-stamp">CONFIDENTIAL / VERTRAULICH</span><span style="margin-left:auto">${fkMChip(m.status)} <b>${esc(m.meeting_no)}</b> · ${esc(fkCom(e,m.committee))} · ${esc(wdOf(m.date))} ${esc(fmtD(m.date))} ${esc(m.time||"")}</span></div>
+  <span class="fk-minfo">${fkMChip(m.status)} <b>${esc(m.meeting_no)}</b> · ${esc(fkCom(e,m.committee))} · ${esc(wdOf(m.date))} ${esc(fmtD(m.date))} ${esc(m.time||"")}</span></div>
  ${m.status==="PLANNED"?`<div class="ri-res info"><b>Agenda not frozen</b><p>Freeze the agenda in the Agenda tab before recording decisions.</p></div>`:""}
- <div class="tablewrap fk-grid"><table><thead><tr><th>No.</th><th>rep.</th><th>Presentation no.</th><th>Designation</th><th>Presentador / LEB</th><th>Note</th><th>Decision</th><th>Info</th><th>latest update</th><th title="Decision recorded">D</th><th title="In protocol">P</th><th>Sheets</th><th>CSC task</th></tr></thead><tbody>
+ <div class="tablewrap fk-grid"><table><thead><tr><th>No.</th><th>Presentation</th><th>Presenter / LEB</th><th>Note</th><th>Decision</th><th>Info</th><th>CSC task</th><th>Updated</th><th class="fk-c" title="Decision recorded">Decided</th><th class="fk-c" title="Included in the protocol">In protocol</th><th class="fk-c" title="Presentation versions">Sheets</th></tr></thead><tbody>
  ${rows.map(it=>{const c=DB.fskcase.find(x=>x._id===it.case_id)||{};const i=m.items.indexOf(it);const lk=!edit||it.applied;
-  return`<tr><td><b>${it.seq}</b></td><td>${c.repetition_count||0}</td><td><button class="linkbtn" data-fkcase="${c._id}">${esc(fkNo(c))}</button></td><td class="wrap">${esc(c.designation)}</td><td class="small">${esc(c.presenter||uName(c.initiator))}</td>
+  return`<tr><td class="fk-no"><b>${it.seq}</b>${c.repetition_count?`<small>rep. ${c.repetition_count}</small>`:""}</td><td class="fk-pres"><button class="linkbtn" data-fkcase="${c._id}">${esc(fkNo(c))}</button><span>${esc(c.designation)}</span></td><td class="small">${esc(c.presenter||uName(c.initiator))}</td>
   <td><input data-fki="note" data-v="${i}" value="${esc(it.note)}" aria-label="Note, item ${it.seq}" ${edit?"":"disabled"}></td>
   <td><select data-fki="decision" data-v="${i}" aria-label="Decision, item ${it.seq}" ${lk?"disabled":""}><option value="">—</option>${decs.map(d=>`<option value="${d}" ${it.decision===d?"selected":""}>${INC8.decL[d]}</option>`).join("")}</select></td>
-  <td><input data-fki="info" data-v="${i}" value="${esc(it.info)}" aria-label="Info, item ${it.seq}" ${edit?"":"disabled"}></td><td class="small">${esc(fmtD(it.updated))}</td>
-  <td>${it.D?"✓":""}</td><td>${it.P?"✓":""}</td><td><button class="linkbtn" data-fkcase="${c._id}" title="Presentation versions">${(c.versions||[]).length}</button></td>
-  <td><input data-fki="csc" data-v="${i}" value="${esc(it.csc)}" aria-label="CSC task, item ${it.seq}" ${edit?"":"disabled"}></td></tr>`}).join("")||`<tr><td colspan="13" class="sub">${FKV.nodec?"Every item has a decision.":"No item matches."}</td></tr>`}</tbody></table></div>
+  <td><input data-fki="info" data-v="${i}" value="${esc(it.info)}" aria-label="Info, item ${it.seq}" ${edit?"":"disabled"}></td>
+  <td><input data-fki="csc" data-v="${i}" value="${esc(it.csc)}" aria-label="CSC task, item ${it.seq}" ${edit?"":"disabled"}></td>
+  <td class="small nw">${esc(fmtD(it.updated))}</td>
+  <td class="fk-c">${it.D?"✓":""}</td><td class="fk-c">${it.P?"✓":""}</td><td class="fk-c"><button class="linkbtn" data-fkcase="${c._id}" title="Presentation versions">${(c.versions||[]).length}</button></td></tr>`}).join("")||`<tr><td colspan="11" class="sub">${FKV.nodec?"Every item has a decision.":"No item matches."}</td></tr>`}</tbody></table></div>
  <p class="fine">Save keeps notes and draft decisions. Update applies the decisions: FSK Committee Recommended moves the request to the ${esc(m.committee==="FSK_COMMITTEE"?"approval forum":"next stage")}; Deferred adds 1 to rep.; Approved validates the reference for the GP request.</p>`;
  const P=m.protocols||[];if(P.length)h+=`<section class="sec"><div class="sec-h"><h2>Protocols<span class="c">${P.length}</span></h2></div><div class="tablewrap"><table><tbody>${P.slice().reverse().map(p=>`<tr><td><b>v${p.v}</b></td><td>${p.format==="FULL"?"Full (board members)":"Selected members"}</td><td class="small">${esc(fmtD(p.d))} ${esc(p.t)}, ${esc(uName(p.by))}</td><td class="small wrap">${esc(p.to.map(uName).join(", "))}</td><td><a class="btn" download="${esc(p.file_name)}" href="data:text/plain;charset=utf-8,${encodeURIComponent(p.text)}">${ico("download")}Download</a></td></tr>`).join("")}</tbody></table></div></section>`;
  return h}
@@ -6085,8 +6090,21 @@ document.head.insertAdjacentHTML("beforeend",`<style id="inc8css">
 .fk-tabs{margin:0 0 14px}.fk-kpi .panel+.panel{margin-top:0}.fk-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:0 0 20px}
 .fk-k{display:grid;gap:2px;text-align:left;padding:12px 14px;cursor:pointer}.fk-k b{font-size:22px;color:var(--ink)}.fk-k span{font-size:12.5px;color:var(--muted)}.fk-k[aria-pressed="true"]{border-color:var(--brand)}
 div.fk-k{cursor:default}.fk-grid td input,.fk-grid td select{min-width:110px;width:100%}.fk-grid td{vertical-align:middle}tr.fk-sel td{background:var(--raise)}
-.fk-tb{align-items:center}.fk-tb .btn[aria-pressed="true"]{border-color:var(--brand);color:var(--brand)}
-@media (max-width:760px){.fk-tb span[style]{margin-left:0!important;width:100%}}
+.fk-flt{grid-template-columns:minmax(0,1fr) minmax(0,1.9fr) repeat(3,minmax(0,1fr))!important;gap:12px 14px!important}
+.fk-flt label{min-width:0}.fk-flt select{width:100%;min-width:0;text-overflow:ellipsis}
+@media (max-width:1100px){.fk-flt{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media (max-width:600px){.fk-flt{grid-template-columns:minmax(0,1fr)!important}}
+.fk-tb{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:16px 0 12px}
+.fk-minfo{margin-left:auto;display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13.5px;color:var(--text)}
+.fk-tb~.ri-res{margin:0 0 12px}
+.fk-grid table{min-width:980px}
+.fk-grid th,.fk-grid td{padding:10px 8px}
+.fk-grid th.fk-c,.fk-grid td.fk-c{text-align:center;width:1%;white-space:nowrap}
+.fk-grid td input{min-width:115px}.fk-grid td select{min-width:150px}
+.fk-no{white-space:nowrap}.fk-no small{display:block;color:var(--muted);font-size:11.5px}
+.fk-pres{min-width:200px}.fk-pres .linkbtn{display:block;font-weight:650;margin-bottom:2px}.fk-pres span{display:block;color:var(--text);line-height:1.35}
+.fk-grid+.fine{max-width:78ch;margin-top:12px}.fk-tb .btn[aria-pressed="true"]{border-color:var(--brand);color:var(--brand)}
+@media (max-width:760px){.fk-minfo{margin-left:0;width:100%}}
 </style>`);
 
 /* ---------- Demo data (US-003): link seeded GP cases at steps 5–7, meetings and a protocol ---------- */
@@ -7511,6 +7529,7 @@ const backLabel=def=>{const p=pageKey()===H.last?H.ids[H.idx-1]:H.cur,sn=p&&H.sn
 /* Breadcrumb trail instead of a big Back button: sidebar group / page / each page opened from it. Every step but the last goes back to that level. */
 function bcBase(mod){const m=mod||S.module,gp=access(S.role,S.entity).mods.some(x=>x[0]==="gp");
  if(m==="home")return[["Home","nav:home"]];
+ if(m==="nb")return[["Negotiation Desk","nav:nb"],[typeof negPageName==="function"?negPageName():"Dashboard","nav:nb"]];
  if(m==="tasks")return[["Work"],["My tasks","nav:tasks"]];
  if(m==="queue")return[["Work"],[OVERSIGHT.includes(S.role)?"All open requests":"Watching","nav:queue"]];
  if(m==="board")return gp?[["GP Process","nav:gp"],["Status Board","nav:board"]]:[["Work"],["Status board","nav:board"]];
@@ -7701,7 +7720,7 @@ const render01=render0;render0=function(){dtReset();H.last=null;H.snaps={};retur
 /* Every list or module page opens with its breadcrumb trail (detail and step pages carry theirs through backBar). */
 function pgBack(){const m=$("#main");if(!m||m.hidden||DT.cur||S.ws||!S.user)return;
  m.querySelectorAll(".pg-bar").forEach(x=>x.remove());if(m.querySelector("[data-dtback]")||S.module==="nb")return;
- const L=bcTrail("page");if(L.length<2)return;m.insertAdjacentHTML("afterbegin",backBar("page"))}
+ const L=bcTrail("page");if(L.length<2)return;($("#content")||m).insertAdjacentHTML("afterbegin",backBar("page"))}
 const shell12=renderShell;renderShell=function(){if(DT.cur&&DT.ctx!==ctxKey())dtClose();shell12();pgBack();histSync()};
 const render12=render;render=function(){render12();pgBack();histSync()};
 
@@ -8159,7 +8178,13 @@ function negHubHTML(){
 }
 try{if(!localStorage.getItem("ais_theme_light_default")){localStorage.setItem("ais_theme_light_default","1");localStorage.setItem("ais_theme","light");document.documentElement.dataset.theme="light"}}catch(e){}
 if(!document.documentElement.dataset.theme)document.documentElement.dataset.theme="light";
-window.addEventListener("message",e=>{if(e.origin!==NEG_BASE||!e.data||typeof e.data.negHeight!=="number")return;const f=document.getElementById("negFrame");if(f)f.style.height=Math.max(480,e.data.negHeight)+"px"});
+window.addEventListener("message",e=>{if(e.origin!==NEG_BASE||!e.data)return;
+ if(typeof e.data.negHeight==="number"){const f=document.getElementById("negFrame");if(f)f.style.height=Math.max(480,e.data.negHeight)+"px";return}
+ /* "Open case in AIS" inside the Negotiation Desk sends the event id; find the request it belongs to and open it */
+ const oc=e.data.negOpenCase;if(oc){const k=String(oc.case_no||oc.event_id||"");const r=k&&DB.req.find(x=>{const n=x.lb&&x.lb.neg;return n&&(n.event_id===k||n.external_ref===k)||x.no===k||x.no+"-NEG"===k});
+  if(!r){toast("This negotiation is not linked to a request in AIS.");return}
+  if(r.entity!==S.entity){toast("That request belongs to another entity.");return}
+  S.ws=null;WS=null;openCase(r._id)}});
 new MutationObserver(()=>{const f=document.getElementById("negFrame");if(f&&f.contentWindow)f.contentWindow.postMessage({negTheme:negTheme()},NEG_BASE)}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 const moduleHTML14=moduleHTML;moduleHTML=function(mod){if(mod==="nb")return negHubHTML();return moduleHTML14(mod)};
 const crumbsFor14=crumbsFor;crumbsFor=function(){if(S.module==="nb")return null;return crumbsFor14()};
@@ -9040,6 +9065,15 @@ const NumHints=(()=>{
  new MutationObserver(sched).observe(document.body,{childList:true,subtree:true});
  sched();return{run}})();
 if(!DB.req||!DB.notif){seedTx();save()}
+/* One-time clean-up: requests typed in as tests (topics "a", "b", "abc") go, with what hangs off them */
+if(DB.req&&!DB.purge1){const ids=new Set(DB.req.filter(r=>/^(a|b|abc)$/i.test(String(r.topic||"").trim())).map(r=>r._id));
+ if(ids.size){DB.req.filter(r=>ids.has(r.request_id)).forEach(r=>ids.add(r._id));
+  const cts=new Set((DB.contract||[]).filter(c=>ids.has(c.request_id)).map(c=>c.contract_id));
+  DB.req=DB.req.filter(r=>!ids.has(r._id));DB.notif=(DB.notif||[]).filter(n=>!ids.has(n.case));
+  if(DB.fskcase)DB.fskcase=DB.fskcase.filter(c=>!ids.has(c.request_id));
+  if(DB.contract)DB.contract=DB.contract.filter(c=>!ids.has(c.request_id));
+  if(DB.approvaltask)DB.approvaltask=DB.approvaltask.filter(t=>!cts.has(t.contract_id))}
+ DB.purge1=1;save()}
 ensureDemoCarts();
 if(S.user&&ensureSession())renderShell();else render0();bumpIdle();
 histBoot();
