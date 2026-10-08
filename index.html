@@ -5027,7 +5027,7 @@ openCase=function(id){p6.openCase(id);const r=DB.req.find(x=>x._id===id);const d
   ${doc?`<div class="actrow" style="margin-top:10px"><button class="btn" id="p6Dl">${ico("download")}Download ${esc(doc.file_name)}</button></div>`:""}
   ${logs.length?`<ul class="p6-log">${logs.map(x=>`<li><b>${esc(x.kind==="DOWNLOAD"?"Downloaded":x.kind==="SUPPLIER_EMAIL"?"Emailed to the supplier":x.kind==="USER_EMAIL"?"Emailed to the Initiator":"In-app notice to the Initiator")}</b> ${esc(x.kind==="DOWNLOAD"?uName(x.by):x.to||"")}, ${esc(fmtD(x.d))} ${esc(x.t||"")}</li>`).join("")}</ul>`:""}</div>`;
  const a=d.querySelector("#p5Blk");if(a)a.insertAdjacentHTML("afterend",html);else d.querySelector(".dr-b > .blk")?.insertAdjacentHTML("beforebegin",html);
- const b=$("#p6Dl");if(b)b.onclick=()=>{c.dist=c.dist||[];c.dist.push({kind:"DOWNLOAD",channel:"AIS",by:S.user,d:today(),t:nowTime()});save();openCase(id);toast("Prototype: the file stays on the uploader's device. Your download is logged on the contract.")}};
+ const b=$("#p6Dl");if(b)b.onclick=()=>{if(doc)crDownload(c,doc)}};
 
 /* ---------- Chain display ---------- */
 function p6ChainHTML(r,c,planIn){const plan=planIn||c?.chain||[];const T=c&&c.status!=="RECORDED"?p6Tasks(c):[];let k=0;
@@ -7155,9 +7155,10 @@ function crHTML(){crCols();const L=crScope();const cnt=k=>L.filter(c=>crBucket(c
   <select id="cr_win" aria-label="Expiry window"><option value="">Any expiry</option>${[...INC10.bk.map(b=>b[0]),"EXP","NONE"].map(k=>`<option value="${k}" ${CR.win===k?"selected":""}>${esc(crBkLab(k))}</option>`).join("")}</select>
   <select id="cr_st" aria-label="Status"><option value="">Any status</option>${sts.map(s=>`<option value="${s}" ${CR.st===s?"selected":""}>${esc(INC10.cst[s]||s)}</option>`).join("")}</select>
   <button class="btn" data-cr="csv">${ico("download")}Export CSV</button></div>
- <div class="tablewrap"><table><thead><tr><th>Contract</th><th>Type</th><th>Supplier</th><th>Request</th><th class="num">Value INR</th><th>Start</th><th>End</th><th>Expiry</th><th>Status</th><th>Next reminder</th><th>Sent</th></tr></thead><tbody>
- ${R.map(c=>{const r=crReq(c);const b=crBucket(c);return`<tr><td><button class="linkbtn" data-ctr="${esc(c.contract_id)}">${esc(c.contract_id)}</button><div class="small sub">${esc(c.contract_number)}</div></td><td class="small">${esc(INC10.ctype[c.contract_type]||c.contract_type)}</td><td class="small wrap">${esc(c.supplier_name||"—")}</td>
-  <td class="small wrap">${r?`<button class="linkbtn" data-case="${r._id}">${esc(r.no)}</button><div class="sub">${esc(r.topic)}</div>`:"—"}</td><td class="num small">${esc(inr(c.value_inr))}</td><td class="small">${esc(fmtD(c.start_date))||"—"}</td><td class="small">${esc(fmtD(c.end_date))||"—"}</td>
+ <div class="tablewrap"><table><thead><tr><th>Request</th><th>Contract</th><th>Type</th><th>Supplier</th><th class="num">Value INR</th><th>Start</th><th>End</th><th>Expiry</th><th>Status</th><th>Next reminder</th><th>Sent</th></tr></thead><tbody>
+ ${R.map(c=>{const r=crReq(c);const b=crBucket(c);return`<tr><td class="small wrap">${r?`<button class="linkbtn" data-case="${r._id}">${esc(r.no)}</button><div class="sub">${esc(r.topic)}</div>`:"—"}</td>
+  <td><button class="linkbtn" data-ctr="${esc(c.contract_id)}">${esc(c.contract_id)}</button><div class="small sub">${esc(c.contract_number)}</div></td><td class="small">${esc(INC10.ctype[c.contract_type]||c.contract_type)}</td><td class="small wrap">${esc(c.supplier_name||"—")}</td>
+  <td class="num small">${esc(inr(c.value_inr))}</td><td class="small">${esc(fmtD(c.start_date))||"—"}</td><td class="small">${esc(fmtD(c.end_date))||"—"}</td>
   <td>${b==="NONE"?'<span class="sub small">Not monitored</span>':`<span class="chip ${b==="B0"||b==="EXP"?"warn":""}">${esc(crBkLab(b))}</span>`}</td><td><div class="stk">${crChip(c)}</div></td><td class="small">${esc(fmtD(crNext(c)))||"—"}</td><td class="small">${(c.rem||[]).length||""}</td></tr>`}).join("")||`<tr><td colspan="11" class="sub">No contract matches.</td></tr>`}</tbody></table></div>
  <p class="fine">Renewal lead time comes from Admin › Renewal Rule; the reminder text from the Notification Template CONTRACT_RENEWAL; the cadence from Reminder Rule R-20.</p>`}
 function crBind(){const c=$("#content");if(!c)return;const on=(id,k)=>{const el=$("#"+id);if(el)el[el.tagName==="INPUT"?"oninput":"onchange"]=()=>{CR[k]=el.value;const p=el.selectionStart;render();if(el.tagName==="INPUT"){const n=$("#"+id);n.focus();try{n.setSelectionRange(p,p)}catch(e){}}}};
@@ -7178,12 +7179,26 @@ function crOpen(id){const c=crById(id);if(!c||!crVisible(c)){toast(c?"That contr
   ${st==="EXPIRING"||st==="EXPIRED"?`<div class="turn ${own?"mine":""}"><div class="who">${st==="EXPIRED"?"Expired":"Renewal due"}</div><p>${st==="EXPIRED"?`Ended ${esc(fmtD(c.end_date))} without a renewal request.`:`Ends ${esc(fmtD(c.end_date))}. ${own?"Start the renewal request now; the reminders stop once it is submitted.":`The Initiator ${esc(uName(r?.initiator))} is reminded monthly${nx?`, next ${esc(fmtD(nx))}`:""}.`}`}</p></div>`:""}
   ${ren?`<div class="turn"><div class="who">Renewal requested</div><p><button class="linkbtn" data-case="${ren._id}">${esc(ren.no)}</button> ${esc(ren.topic)}, ${stChip(caseStatus(ren))}. Renewal reminders stopped (US-152 AC2).</p></div>`:""}
   <div class="blk"><h3>Contract</h3><div class="nb-kv">${kv.map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div></div>
+  ${crDocBlock(c)}
   <div class="blk"><h3>Renewal reminders</h3>${schedHTML}</div>
   <div class="actrow">${canRenew?`<button class="btn pri" id="crRen">${ico("plus")}Start renewal request</button>`:""}${canRem?`<button class="btn" id="crRem">${ico("send")}Send reminder now</button>`:""}<button class="btn" id="crAsk" title="Ask AIS about this contract">${ico("askcase")}<span>Ask AIS about this contract</span></button></div>
   ${!own&&crMonitored(c)&&st!=="RENEWED"&&S.role==="INITIATOR"?`<p class="fine">Only the Initiator of ${esc(r?.no||"the original request")} starts the renewal.</p>`:""}
   <div class="blk"><h3>History</h3><ol class="nb-log">${(c.history||[]).slice().reverse().map(h=>`<li><span class="small sub">${esc(fmtD(h.d))} ${esc(h.t||"")}</span> ${esc(h.action)}${h.note?` <span class="sub small">${esc(h.note)}</span>`:""}</li>`).join("")||'<li class="sub">No entries.</li>'}</ol></div></div>`);
  const d=$("#drawer");const ren1=$("#crRen");if(ren1)ren1.onclick=()=>crRenew(c);const rm=$("#crRem");if(rm)rm.onclick=()=>{crSend(c,today(),"MANUAL");save();refreshBell?.();crOpen(c.contract_id);toast(`Reminder sent to ${uName(r?.initiator)}${r?.buyer?`, copy ${uName(r.buyer)}`:""}`)};
  $("#crAsk").onclick=()=>openAsk({ctr:c.contract_id});scrubNode(d)}
+/* Contract document: the signed copy (and any annexure) uploaded at step 36, with a download */
+function crDocs(c){const r=crReq(c);return((r&&r.docs)||[]).filter(d=>d.id===c.copy_doc_id||d.owner_id===c.contract_id).sort((a,b)=>(b.id===c.copy_doc_id)-(a.id===c.copy_doc_id))}
+function crDocBlock(c){const L=crDocs(c);const lab=d=>d.id===c.copy_doc_id?`Signed ${(INC10.ctype[c.contract_type]||"contract").toLowerCase()} copy`:"Annexure";
+ const body=L.length?`<ul class="cr-docs">${L.map(d=>`<li><span class="fx-ext">${esc(((String(d.file_name).match(/\.([A-Za-z0-9]{2,5})$/)||[])[1]||"file").toUpperCase())}</span><span class="cr-dn"><b>${esc(d.file_name)}</b><small>${esc(lab(d))} · ${d.version_no>1?`version ${d.version_no}, `:""}${d.size?esc(kb(d.size))+" · ":""}uploaded by ${esc(uName(d.uploaded_by)||d.uploaded_by||"AIS")}, ${esc(fmtD(String(d.uploaded_at||"").slice(0,10)))}</small></span><button type="button" class="btn" data-crdl="${esc(d.id)}" data-ct="${esc(c.contract_id)}">${ico("download")}Download</button></li>`).join("")}</ul><p class="fine" style="margin:8px 0 0">Prototype: the uploaded file stays on the uploader's device, so the download is a summary copy of this contract record. Each download is logged.</p>`
+  :`<p class="fine" style="margin:0">${c.status==="IN_APPROVAL"?"The contract is still in approval. The Buyer uploads the signed copy at step 36 once it is approved.":c.status==="APPROVED"?"Approved. The Buyer uploads the signed copy at step 36, and it appears here.":"No signed copy has been uploaded yet."}</p>`;
+ return`<div class="blk" id="crDocBlk"><h3>Contract document${L.length?` <span class="chip">${L.length}</span>`:""}</h3>${body}</div>`}
+function crDocText(c,d){const r=crReq(c);const T=typeof p6Tasks==="function"?p6Tasks(c):[];const L=["AIS · CONTRACT DOCUMENT (prototype copy)","",`Document     ${d.file_name}`,`Type         ${INC10.ctype[c.contract_type]||c.contract_type} ${c.contract_number}`,`Contract ID  ${c.contract_id}`,r?`Request      ${r.no}  ${r.topic}`:"",`Supplier     ${c.supplier_name||""}`,`Value        ${inr(c.value_inr)}${c.currency&&c.currency!=="INR"?` (${money(c.value,c.currency)})`:""}`,
+  `${c.contract_type==="PO"?"PO date     ":"Start        "}${fmtD(c.start_date)||"-"}`,`${c.contract_type==="PO"?"Delivery     "+(fmtD(c.delivery_date)||"-"):"End          "+(fmtD(c.end_date)||"-")}`,`Status       ${INC10.cst[c.status]||c.status}`,"","Approvals"];
+ T.forEach(t=>L.push(`  ${roleName(t.role)}: ${t.status==="APPROVED"?`approved ${fmtD(String(t.decided_at||t.approved_on||"").slice(0,10))}${uName(t.decided_by)?` by ${uName(t.decided_by)}`:""}`:String(t.status||"").toLowerCase()}`));
+ if(!T.length)L.push("  none recorded");L.push("",`Uploaded by ${uName(d.uploaded_by)||d.uploaded_by||"AIS"} on ${fmtD(String(d.uploaded_at||"").slice(0,10))}`,"","This is a summary generated by the AIS prototype. The original signed file is held by the uploader.");return L.filter(x=>x!==undefined).join("\n")}
+function crDownload(c,d){const name=String(d.file_name).replace(/\.[A-Za-z0-9]{2,5}$/,"")+" (AIS copy).txt";const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([crDocText(c,d)],{type:"text/plain;charset=utf-8"}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+ c.dist=c.dist||[];c.dist.push({kind:"DOWNLOAD",channel:"AIS",by:S.user,d:today(),t:nowTime()});save();toast(`Downloaded ${name}. Logged on the contract.`)}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-crdl]");if(!b)return;e.preventDefault();const c=crById(b.dataset.ct),d=c&&crDocs(c).find(x=>x.id===b.dataset.crdl);if(c&&d)crDownload(c,d)});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-ctr]");if(b){e.preventDefault();e.stopPropagation();if($("#pal").open)$("#pal").close();crOpen(b.dataset.ctr)}},true);
 
 /* ---------- Renewal request pre-filled from the contract (US-152) ---------- */
@@ -7504,6 +7519,7 @@ if(DB.req&&DB.notif&&!DB.inc10){p10Seed();save()}
    Requests, FSK requests and contracts open as a full page in the main area (the old side drawer content is built as before,
    then moved into #dtPage). History entries are pushed per page, not per filter or tab change. ===== */
 Object.assign(IP,{arrowl:'<path d="M19 12H5M12 19l-7-7 7-7"/>'});
+Object.assign(IP,{extl:'<path d="M7 17 17 7"/><path d="M8 7h9v9"/>'});
 Object.assign(IP,{eyeon:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3" fill="currentColor"/>',askcase:'<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4 3.5V16h-.5A2.5 2.5 0 0 1 4 13.5Z"/><path d="M12 6.2l1 2.3 2.3 1-2.3 1-1 2.3-1-2.3-2.3-1 2.3-1z"/>'});
 const DTK=["case","fskcase","contract"];
 const DT={cur:null,stack:[],originScroll:0,originLabel:"",ctx:"",pend:null,staged:false,recent:null};
@@ -7866,7 +7882,8 @@ function rpBuild(pg,desc){const drb=pg.querySelector(".dr-b"),drh=pg.querySelect
  chips.forEach(c=>hl.querySelector(".rp-id").appendChild(c));
  if(r){const fl=rpFlowHTML(r);if(fl)hl.querySelector(".rp-hl-h").insertAdjacentHTML("afterend",fl)}
  if(meta){meta.className="rp-sub";hl.querySelector(".rp-hl-h").appendChild(meta)}
- if(r&&drb.querySelector("#p6Blk")){const ct=p6Ctr(r);hl.querySelector(".rp-hl-h").insertAdjacentHTML("beforeend",`<p class="rp-sub rp-cd">${ico("doc")}${wLink("p6Blk",esc(ct?p6Lab(ct):"Contract / PO document"))}<span> · ${esc(ct&&ct.status==="DISTRIBUTED"?"signed copy distributed":ct&&ct.status==="APPROVED"?"approved, copy to upload":"in approval")}</span></p>`)}
+ if(r&&drb.querySelector("#p6Blk")){const ct=p6Ctr(r);const st=ct&&ct.status==="DISTRIBUTED"?["ok","Signed copy distributed"]:ct&&ct.status==="APPROVED"?["warn","Approved, copy to upload"]:["","In approval"];
+  hl.querySelector(".rp-hl-h").insertAdjacentHTML("beforeend",`<div class="rp-cd"><a href="#p6Blk" class="rp-pill ws-jump" data-jump="p6Blk" title="Jump to the document on this page">${ico("doc")}<span>${esc(ct?p6TypeLab(ct.contract_type):"Contract / PO")} <b>${esc(ct?ct.contract_number:"")}</b></span>${ico("chev")}</a>${ct?`<button type="button" class="rp-pill" data-ctr="${esc(ct.contract_id)}" title="Open this contract in the Contract Registry">${ico("extl")}<span>Contract <b>${esc(ct.contract_id)}</b></span></button>`:""}<span class="chip ${st[0]}">${st[1]}</span></div>`)}
  const actions=hl.querySelector(".rp-hl-a");["p10Sb","p10Ask","crAsk"].forEach(id=>{const b=pg.querySelector("#"+id);if(b)actions.appendChild(b)});
  if(!actions.children.length)actions.remove();
  /* action card: whose turn it is and the step actions */
@@ -7996,7 +8013,13 @@ document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest
 document.head.insertAdjacentHTML("beforeend",`<style id="jumpcss">
 .ws-jump{color:var(--brand);font-weight:600;text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}.ws-jump:hover{text-decoration-thickness:2px}
 .ri-sec,.blk{scroll-margin-top:84px}
-.rp-cd{display:flex;align-items:center;gap:6px;margin-top:2px}.rp-cd svg.i{width:15px;height:15px;color:var(--muted)}
+.rp-cd{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
+.rp-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 12px 5px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--text);font:inherit;font-size:13px;font-weight:500;text-decoration:none;cursor:pointer;line-height:1.3}
+.rp-pill b{color:var(--ink);font-weight:650}
+.rp-pill svg.i{width:15px;height:15px;flex:none;color:var(--muted)}
+.rp-pill:hover,.rp-pill:focus-visible{border-color:var(--brand);background:var(--brand-soft);color:var(--brand);outline:none}
+.rp-pill:hover b,.rp-pill:hover svg.i,.rp-pill:focus-visible b{color:var(--brand)}
+.rp-pill.ws-jump{text-decoration:none}
 @keyframes wsFlash{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--brand) 55%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
 .ws-flash{animation:wsFlash 1.1s ease-out 1}
 @media (prefers-reduced-motion:reduce){.ws-flash{animation:none}}
@@ -8008,6 +8031,9 @@ document.head.insertAdjacentHTML("beforeend",`<style id="fxcss">
 .rp-tabs button .rp-tc{margin-left:6px;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--raise);color:var(--muted)}
 .rp-tabs button[aria-selected="true"] .rp-tc{background:var(--brand-soft);color:var(--brand)}
 .rp-body.tab-wide{grid-template-columns:minmax(0,1fr)}.rp-body.tab-wide>.rp-side{display:none}
+.cr-docs{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.cr-docs li{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-m);background:var(--panel)}
+.cr-dn{flex:1;min-width:0}.cr-dn b{display:block;overflow-wrap:anywhere}.cr-dn small{display:block;color:var(--muted);font-size:12px;margin-top:1px}
 .fx-bar{display:flex;justify-content:flex-end;margin:0 0 8px}.fx-f{display:flex;align-items:center;gap:8px}.fx-f select{padding:6px 10px}
 .fx-dt td{vertical-align:top}.fx-dt .nw{white-space:nowrap}
 .fx-file{display:flex;gap:10px;align-items:flex-start;min-width:0}.fx-file b{display:block;overflow-wrap:anywhere}.fx-file small,.fx-s{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:1px}
