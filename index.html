@@ -295,6 +295,10 @@ body:has(.ri-aside [data-ri="submit"]) .askfab{bottom:calc(84px + env(safe-area-
 .dt-page[hidden]{display:none}
 .dt-page:focus{outline:none}
 .dt-bar{margin:0 0 16px}
+.dt-bar .ask-link{margin-left:auto;border:0;background:linear-gradient(100deg,var(--brand) 35%,color-mix(in srgb,var(--brand) 25%,#fff) 50%,var(--brand) 65%) 150% 0/250% 100% no-repeat;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--brand);font:inherit;font-size:13px;font-weight:650;cursor:pointer;padding:2px 4px;border-radius:5px;animation:askShimmer 2.2s linear infinite}
+.dt-bar .ask-link:hover{text-decoration:underline}.dt-bar .ask-link:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+@keyframes askShimmer{from{background-position:150% 0}to{background-position:-50% 0}}
+@media (prefers-reduced-motion:reduce){.dt-bar .ask-link{animation:none;background:none;-webkit-text-fill-color:currentColor}}
 .dt-back{display:inline-flex;align-items:center;gap:8px;max-width:100%;text-align:left;padding:7px 14px 7px 10px;border:1px solid var(--line);border-radius:var(--r-m);background:var(--panel);color:var(--ink);font-weight:600}
 .dt-back:hover{border-color:var(--brand);background:var(--raise)}
 .dt-back svg.i{width:16px;height:16px;flex:none;color:var(--muted)}
@@ -3235,8 +3239,8 @@ function askAnswerBase(q){const t=q.toLowerCase(),I=items();const lst=L=>L.lengt
 /* ---------- Prototype controls (US-002 persona switch, US-055 clock, US-003 reset) ---------- */
 function openDemo(){const t=today(),di=dayInfo(S.entity,t);const per=e=>DB.user.filter(u=>u.entity===e&&u._active&&activeUR().some(r=>r.user===u.sso));
  openDrawer("demo",drHead(`<b>Prototype controls</b><span class="proto">Prototype only</span>`)+`<div class="dr-b">
- <div class="blk" style="margin-top:0"><h3>Simulated clock</h3><div class="clockface"><b>${esc(wdOf(t))} ${esc(fmtD(t))}</b><span class="sub">${di.work?"Working day":esc(di.why)} in ${esc(S.entity)}</span></div>
- <div class="actrow"><button class="btn" id="ckDay">Next day</button><button class="btn" id="ckMon">Next Monday</button></div><p class="fine">Advancing runs the reminder scheduler and the NegBot system steps day by day; new reminders and escalations land in the notification centre and outbox (US-055).</p></div>
+ <div class="blk" style="margin-top:0"><h3>Clock</h3><div class="clockface"><b>${esc(wdOf(t))} ${esc(fmtD(t))}</b><span class="sub">${di.work?"Working day":esc(di.why)} in ${esc(S.entity)}</span></div>
+ <div class="actrow"><button class="btn" id="ckDay">Next day</button><button class="btn" id="ckMon">Next Monday</button></div><p class="fine">The clock follows today's date by itself. Advancing ahead of it runs the reminder scheduler and the NegBot system steps day by day; new reminders and escalations land in the notification centre and outbox (US-055).</p></div>
  <div class="blk"><h3>Act as another persona</h3><p class="fine" style="margin:0 0 10px">Switching reloads the Task List and Status Queue for that role (US-002 AC2).</p>${["E1","E2"].map(e=>`<div class="idp-g" style="padding-left:0">${esc(DB.entity.find(x=>x.code===e)?.name||e)}</div><div class="personas">${per(e).map(u=>`<button class="pp" data-per="${esc(u.sso)}" aria-current="${u.sso===S.user}"><span class="av">${esc(initials(u.full_name))}</span><span class="t"><b>${esc(u.full_name)}</b><span>${activeUR().filter(r=>r.user===u.sso).map(r=>esc(roleName(r.role))).join(", ")}</span></span>${(()=>{const n=(DB.req||[]).filter(r=>r.entity===e&&isOpen(r)&&activeUR().filter(x=>x.user===u.sso&&x.entity===e).some(x=>whoAt(r).task.includes(x.role))).length;return n?`<span class="badge hot">${n}</span>`:""})()}</button>`).join("")}</div>`).join("")}</div>
  <div class="blk"><h3>Demo data</h3><p class="fine" style="margin:0 0 10px">Restores the masters, ${TX_SEED.length+3} sample requests, notifications and the clock to their seed state. Your master edits are lost.</p><button class="btn danger" id="ckReset">Reset demo data</button></div>
  ${refsToggleHTML()}<p class="fine devcol">These controls disappear when DEMO.enabled is false (US-002 AC4).</p></div>`);
@@ -7896,7 +7900,10 @@ function rpBuild(pg,desc){const drb=pg.querySelector(".dr-b"),drh=pg.querySelect
  if(meta){meta.className="rp-sub";hl.querySelector(".rp-hl-h").appendChild(meta)}
  if(r&&drb.querySelector("#p6Blk")){const ct=p6Ctr(r);const st=ct&&ct.status==="DISTRIBUTED"?["ok","Signed copy distributed"]:ct&&ct.status==="APPROVED"?["warn","Approved, copy to upload"]:["","In approval"];
   hl.querySelector(".rp-hl-h").insertAdjacentHTML("beforeend",`<div class="rp-cd"><a href="#p6Blk" class="rp-pill ws-jump" data-jump="p6Blk" title="Jump to the document on this page">${ico("doc")}<span>${esc(ct?p6TypeLab(ct.contract_type):"Contract / PO")} <b>${esc(ct?ct.contract_number:"")}</b></span>${ico("chev")}</a>${ct?`<button type="button" class="rp-pill" data-ctr="${esc(ct.contract_id)}" title="Open this contract in the Contract Registry">${ico("extl")}<span>Contract <b>${esc(ct.contract_id)}</b></span></button>`:""}<span class="chip ${st[0]}">${st[1]}</span></div>`)}
- const actions=hl.querySelector(".rp-hl-a");["p10Sb","p10Ask","crAsk"].forEach(id=>{const b=pg.querySelector("#"+id);if(b)actions.appendChild(b)});
+ /* "Ask AIS about this request" sits in the breadcrumb row as a shimmering text link, not as an icon button in the card */
+ const askB=pg.querySelector("#p10Ask"),crumbBar=pg.querySelector(".dt-bar")||(pg.parentElement&&pg.parentElement.querySelector(".dt-bar"));
+ if(askB&&crumbBar){askB.className="ask-link";askB.innerHTML="Ask AIS";askB.title="Ask AIS about this request";askB.setAttribute("aria-label","Ask AIS about this request");crumbBar.appendChild(askB)}
+ const actions=hl.querySelector(".rp-hl-a");["p10Sb",...(askB&&crumbBar?[]:["p10Ask"]),"crAsk"].forEach(id=>{const b=pg.querySelector("#"+id);if(b)actions.appendChild(b)});
  if(!actions.children.length)actions.remove();
  /* action card: whose turn it is and the step actions */
  /* anything else the old panel held (for example the contract renewal buttons) stays with the action card, nothing is dropped */
@@ -9621,6 +9628,21 @@ const NumHints=(()=>{
  new MutationObserver(sched).observe(document.body,{childList:true,subtree:true});
  sched();return{run}})();
 if(!DB.req||!DB.notif){seedTx();save()}
+/* The clock follows the real calendar: when a new day has begun since the last visit, AIS runs the reminder scheduler
+   and the NegBot system steps for each day that passed. "Next day" in the prototype controls can still jump ahead of it. */
+const realDay=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+function clockCatchUp(){
+ if(!DB||!DB.req)return false;
+ const real=realDay();let d=today();if(d>=real)return false;let steps=0;
+ while(d<real&&steps<14){const nx=addD(d,1);DB.clock={date:nx};
+  DB.req.filter(r=>isOpen(r)&&r.module==="NegBot").forEach(r=>{if(!isWork(r.entity,nx))return;if(whoAt(r).via==="system"&&r.entered<nx){r.hist.push({d:nx,t:"06:30",step:r.step,role:"",by:"AIS",action:"Completed by AIS",note:""});moveNext(r,{by:"AIS",silent:true})}});
+  runScheduler(d,nx);d=nx;steps++}
+ if(d<real)DB.clock={date:real};
+ save();return true}
+function clockTick(){try{if(clockCatchUp()&&S.user){refreshBell();renderShell()}}catch(e){console.error(e)}}
+clockCatchUp();
+setInterval(clockTick,300000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)clockTick()});
 /* One-time clean-up: requests typed in as tests (topics "a", "b", "abc") go, with what hangs off them */
 if(DB.req&&!DB.purge1){const ids=new Set(DB.req.filter(r=>/^(a|b|abc)$/i.test(String(r.topic||"").trim())).map(r=>r._id));
  if(ids.size){DB.req.filter(r=>ids.has(r.request_id)).forEach(r=>ids.add(r._id));
